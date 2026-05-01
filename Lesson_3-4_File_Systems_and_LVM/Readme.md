@@ -522,6 +522,7 @@ tmpfs                              tmpfs  387M   12K  387M   1% /run/user/1000
 Правим fstab для автоматического монтирования /home: 
 
 ```
+root@ubuntu-server:~# echo "`blkid | grep Home | awk '{print $2}'` /home ext4 defaults 0 0" >> /etc/fstab
 root@ubuntu-server:~# cat /etc/fstab
 # /etc/fstab: static file system information.
 #
@@ -535,7 +536,7 @@ root@ubuntu-server:~# cat /etc/fstab
 # /boot was on /dev/sda2 during curtin installation
 /dev/disk/by-uuid/1d3bb7d8-43c8-4f82-807b-575013604971 /boot ext4 defaults 0 1
 UUID="68ba2c7c-044e-49ac-a086-7a635ec30c73" /var ext4 defaults 0 0
-UUID="db1fef13-f2af-48be-b499-ff2a89088de0" /home xfs defaults 0 0
+UUID="db1fef13-f2af-48be-b499-ff2a89088de0" /home ext4 defaults 0 0
 ```
 
 Генерируем файлы в /home/
