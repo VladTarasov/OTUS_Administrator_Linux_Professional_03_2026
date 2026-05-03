@@ -591,3 +591,28 @@ NAME  PROPERTY  VALUE      SOURCE
 otus  checksum  sha256     local
 ```
 
+## 3. Работа со снапшотами
+
+Скачаем файл, указанный в задании:
+
+```
+root@ubuntu24:~# wget -O otus_task2.file --no-check-certificate 'https://drive.usercontent.google.com/download?id=1wgxjih8YZ-cqLqaZVa0lA3h3Y029c3oI&export=download'
+--2026-05-03 18:36:56--  https://drive.usercontent.google.com/download?id=1wgxjih8YZ-cqLqaZVa0lA3h3Y029c3oI&export=download
+Resolving drive.usercontent.google.com (drive.usercontent.google.com)... 64.233.164.132, 2a00:1450:4010:c07::84
+Connecting to drive.usercontent.google.com (drive.usercontent.google.com)|64.233.164.132|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 5432736 (5.2M) [application/octet-stream]
+Saving to: ‘otus_task2.file’
+
+otus_task2.file                 100%[====================================================>]   5.18M  8.22MB/s    in 0.6s
+
+2026-05-03 18:36:59 (8.22 MB/s) - ‘otus_task2.file’ saved [5432736/5432736]
+
+root@ubuntu24:~# ls -l
+total 12424
+-rw-r--r-- 1 root root 7275140 Dec  6  2023 archive.tar.gz
+-rw-r--r-- 1 root root 5432736 Dec  6  2023 otus_task2.file
+-rw-r--r-- 1 root root     917 May  3 18:35 wget-log
+drwxr-xr-x 2 root root    4096 May 15  2020 zpoolexport
+```
+
