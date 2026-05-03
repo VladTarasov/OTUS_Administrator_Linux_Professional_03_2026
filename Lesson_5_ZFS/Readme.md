@@ -616,3 +616,24 @@ total 12424
 drwxr-xr-x 2 root root    4096 May 15  2020 zpoolexport
 ```
 
+Восстановим файловую систему из снапшота: 
+
+```
+root@ubuntu24:~# zfs receive otus/test@today < otus_task2.file
+```
+
+Далее, ищем в каталоге /otus/test файл с именем “secret_message”:
+
+```
+root@ubuntu24:~# find /otus/test -name "secret_message"
+/otus/test/task1/file_mess/secret_message
+```
+
+Смотрим содержимое найденного файла: 
+
+```
+root@ubuntu24:~# cat /otus/test/task1/file_mess/secret_message
+https://otus.ru/lessons/linux-hl/
+```
+
+Видим ссылку на курс "Инфраструктура высоконагруженных систем".
