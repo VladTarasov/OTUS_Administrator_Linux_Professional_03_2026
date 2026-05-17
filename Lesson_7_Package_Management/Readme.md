@@ -760,7 +760,45 @@ root@alma10:~/ngx_brotli/deps/brotli/out#
 ```
 
 Собираем модуль ngx_brotli:
+Не получилось - возникла ошибка
 
 ```
+root@alma10:~/ngx_brotli/deps/brotli/out# cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS="-Ofast -m64 -march=native -mtune=native -flto -funroll-loops -ffunction-sections -fdata-sections-Wl,--gc-sections" -DCMAKE_CXX_FLAGS="-Ofast -m64 -march=native -mtune=native -flto -funroll-loops -ffunction-sections -fdata-sections -Wl,--gc-sections" -DCMAKE_NSTALL_PREFIX=./installed ..
+-- The C compiler identification is GNU 14.3.1
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - failed
+-- Check for working C compiler: /bin/cc
+-- Check for working C compiler: /bin/cc - broken
+CMake Error at /usr/share/cmake/Modules/CMakeTestCCompiler.cmake:67 (message):
+  The C compiler
 
+    "/bin/cc"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: '/root/ngx_brotli/deps/brotli/CMakeFiles/CMakeScratch/TryCompile-MRxbiB'
+    
+    Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /bin/gmake -f Makefile cmTC_b7471/fast
+    /bin/gmake  -f CMakeFiles/cmTC_b7471.dir/build.make CMakeFiles/cmTC_b7471.dir/build
+    gmake[1]: Entering directory '/root/ngx_brotli/deps/brotli/CMakeFiles/CMakeScratch/TryCompile-MRxbiB'
+    Building C object CMakeFiles/cmTC_b7471.dir/testCCompiler.c.o
+    /bin/cc   -Ofast -m64 -march=native -mtune=native -flto -funroll-loops -ffunction-sections -fdata-sections-Wl,--gc-sections  -o CMakeFiles/cmTC_b7471.dir/testCCompiler.c.o -c /root/ngx_brotli/deps/brotli/CMakeFiles/CMakeScratch/TryCompile-MRxbiB/testCCompiler.c
+    cc: error: unrecognized command-line option ‘-m64’
+    cc: error: unrecognized command-line option ‘-fdata-sections-Wl,--gc-sections’
+    gmake[1]: *** [CMakeFiles/cmTC_b7471.dir/build.make:78: CMakeFiles/cmTC_b7471.dir/testCCompiler.c.o] Error 1
+    gmake[1]: Leaving directory '/root/ngx_brotli/deps/brotli/CMakeFiles/CMakeScratch/TryCompile-MRxbiB'
+    gmake: *** [Makefile:127: cmTC_b7471/fast] Error 2
+    
+    
+
+  
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:11 (project)
+
+
+-- Configuring incomplete, errors occurred!
 ```
