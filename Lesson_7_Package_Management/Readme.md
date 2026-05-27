@@ -27,6 +27,7 @@ Transient hostname: localhost
   Firmware Version: 6.00
 ```
 
+## 1) Создание своего RPM пакета
 Установим пакеты необходимые для выполнения задания:
 
 ```
@@ -1689,3 +1690,203 @@ May 26 22:54:17 localhost.localdomain nginx[50889]: nginx: the configuration fil
 May 26 22:54:17 localhost.localdomain nginx[50889]: nginx: configuration file /etc/nginx/nginx.conf test is successful
 May 26 22:54:17 localhost.localdomain systemd[1]: Started The nginx HTTP and reverse proxy server.
 ```
+
+## 2) Создание своего репозитория и размещение там ранее собранных пакетов RPM
+
+Теперь приступим к созданию своего репозитория. Директория для статики у Nginx 
+по умолчанию /usr/share/nginx/html. Создадим там каталог repo и скопируем туда наши собранные RPM-пакеты:
+
+```
+[root@localhost user]# mkdir /usr/share/nginx/html/repo
+[root@localhost user]# cp ~/rpmbuild/RPMS/x86_64/*.rpm /usr/share/nginx/html/repo/
+[root@localhost user]# ll /usr/share/nginx/html/repo
+total 2036
+-rw-r--r--. 1 root root   37986 May 27 22:16 nginx-1.20.1-28.el9.2.alma.1.x86_64.rpm
+-rw-r--r--. 1 root root    9089 May 27 22:16 nginx-all-modules-1.20.1-28.el9.2.alma.1.noarch.rpm
+-rw-r--r--. 1 root root 1030483 May 27 22:16 nginx-core-1.20.1-28.el9.2.alma.1.x86_64.rpm
+-rw-r--r--. 1 root root   10688 May 27 22:16 nginx-filesystem-1.20.1-28.el9.2.alma.1.noarch.rpm
+-rw-r--r--. 1 root root  762249 May 27 22:16 nginx-mod-devel-1.20.1-28.el9.2.alma.1.x86_64.rpm
+-rw-r--r--. 1 root root   21073 May 27 22:16 nginx-mod-http-image-filter-1.20.1-28.el9.2.alma.1.x86_64.rpm
+-rw-r--r--. 1 root root   32601 May 27 22:16 nginx-mod-http-perl-1.20.1-28.el9.2.alma.1.x86_64.rpm
+-rw-r--r--. 1 root root   19879 May 27 22:16 nginx-mod-http-xslt-filter-1.20.1-28.el9.2.alma.1.x86_64.rpm
+-rw-r--r--. 1 root root   55488 May 27 22:16 nginx-mod-mail-1.20.1-28.el9.2.alma.1.x86_64.rpm
+-rw-r--r--. 1 root root   82028 May 27 22:16 nginx-mod-stream-1.20.1-28.el9.2.alma.1.x86_64.rpm
+```
+
+Инициализируем репозиторий командой: 
+
+```
+[root@localhost user]# createrepo /usr/share/nginx/html/repo/
+Directory walk started
+Directory walk done - 10 packages
+Temporary output repo path: /usr/share/nginx/html/repo/.repodata/
+Preparing sqlite DBs
+Pool started (with 5 workers)
+Pool finished
+```
+
+Для прозрачности настроим в NGINX доступ к листингу каталога. В файле 
+/etc/nginx/nginx.conf в блоке server добавим следующие директивы: 
+
+```
+[root@localhost user]# nano /etc/nginx/nginx.conf
+    server {
+        listen       80;
+        listen       [::]:80;
+        server_name  _;
+        root         /usr/share/nginx/html;
+        index index.html index.htm;
+        autoindex on;
+```
+
+Проверяем синтаксис и перезапускаем NGINX: 
+
+```
+[root@localhost user]# nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+[root@localhost user]# nginx -s reload
+[root@localhost user]#
+```
+
+Проверим содержимое репозитория с помощью curl: 
+
+```
+[root@localhost user]# curl -a http://localhost/repo/
+<html>
+<head><title>Index of /repo/</title></head>
+<body>
+<h1>Index of /repo/</h1><hr><pre><a href="../">../</a>
+<a href="repodata/">repodata/</a>                                          27-May-2026 19:19                   -
+<a href="nginx-1.20.1-28.el9.2.alma.1.x86_64.rpm">nginx-1.20.1-28.el9.2.alma.1.x86_64.rpm</a>            27-May-2026 19:16               37986
+<a href="nginx-all-modules-1.20.1-28.el9.2.alma.1.noarch.rpm">nginx-all-modules-1.20.1-28.el9.2.alma.1.noarch..&gt;</a> 27-May-2026 19:16                9089
+<a href="nginx-core-1.20.1-28.el9.2.alma.1.x86_64.rpm">nginx-core-1.20.1-28.el9.2.alma.1.x86_64.rpm</a>       27-May-2026 19:16             1030483
+<a href="nginx-filesystem-1.20.1-28.el9.2.alma.1.noarch.rpm">nginx-filesystem-1.20.1-28.el9.2.alma.1.noarch.rpm</a> 27-May-2026 19:16               10688
+<a href="nginx-mod-devel-1.20.1-28.el9.2.alma.1.x86_64.rpm">nginx-mod-devel-1.20.1-28.el9.2.alma.1.x86_64.rpm</a>  27-May-2026 19:16              762249
+<a href="nginx-mod-http-image-filter-1.20.1-28.el9.2.alma.1.x86_64.rpm">nginx-mod-http-image-filter-1.20.1-28.el9.2.alm..&gt;</a> 27-May-2026 19:16               21073
+<a href="nginx-mod-http-perl-1.20.1-28.el9.2.alma.1.x86_64.rpm">nginx-mod-http-perl-1.20.1-28.el9.2.alma.1.x86_..&gt;</a> 27-May-2026 19:16               32601
+<a href="nginx-mod-http-xslt-filter-1.20.1-28.el9.2.alma.1.x86_64.rpm">nginx-mod-http-xslt-filter-1.20.1-28.el9.2.alma..&gt;</a> 27-May-2026 19:16               19879
+<a href="nginx-mod-mail-1.20.1-28.el9.2.alma.1.x86_64.rpm">nginx-mod-mail-1.20.1-28.el9.2.alma.1.x86_64.rpm</a>   27-May-2026 19:16               55488
+<a href="nginx-mod-stream-1.20.1-28.el9.2.alma.1.x86_64.rpm">nginx-mod-stream-1.20.1-28.el9.2.alma.1.x86_64.rpm</a> 27-May-2026 19:16               82028
+</pre><hr></body>
+</html>
+```
+
+ Все готово для того, чтобы протестировать репозиторий. Добавим его в /etc/yum.repos.d:
+
+ ```
+[root@localhost user]# cat >> /etc/yum.repos.d/otus.repo << EOF
+[otus]
+name=otus-linux
+baseurl=http://localhost/repo
+gpgcheck=0
+enabled=1
+EOF
+```
+
+Убедимся, что репозиторий подключился и посмотрим, что в нем есть: 
+
+```
+[root@localhost user]# yum repolist enabled | grep otus
+otus                otus-linux
+```
+
+Добавим пакет в наш репозиторий:
+
+```
+[root@localhost user]# cd /usr/share/nginx/html/repo/
+[root@localhost repo]# wget https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+--2026-05-27 22:38:47--  https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+Resolving repo.percona.com (repo.percona.com)... 49.12.125.205, 2a01:4f8:242:5792::2
+Connecting to repo.percona.com (repo.percona.com)|49.12.125.205|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 28152 (27K) [application/x-redhat-package-manager]
+Saving to: ‘percona-release-latest.noarch.rpm’
+
+percona-release-latest.noarch.r 100%[====================================================>]  27.49K  --.-KB/s    in 0s
+
+2026-05-27 22:38:47 (83.3 MB/s) - ‘percona-release-latest.noarch.rpm’ saved [28152/28152]
+```
+
+Обновим список пакетов в репозитории:
+
+```
+[root@localhost repo]#  createrepo /usr/share/nginx/html/repo/
+Directory walk started
+Directory walk done - 11 packages
+Temporary output repo path: /usr/share/nginx/html/repo/.repodata/
+Preparing sqlite DBs
+Pool started (with 5 workers)
+Pool finished
+[root@localhost repo]#  yum makecache
+AlmaLinux 9 - AppStream                                                                      6.7 kB/s | 4.2 kB     00:00
+AlmaLinux 9 - BaseOS                                                                         6.0 kB/s | 3.8 kB     00:00
+AlmaLinux 9 - Extras                                                                         5.9 kB/s | 3.8 kB     00:00
+Extra Packages for Enterprise Linux 9 - x86_64                                                36 kB/s |  36 kB     00:00
+Extra Packages for Enterprise Linux 9 openh264 (From Cisco) - x86_64                         4.0 kB/s | 993  B     00:00
+otus-linux                                                                                   565 kB/s | 7.2 kB     00:00
+Metadata cache created.
+[root@localhost repo]# yum list | grep otus
+percona-release.noarch                                                                   1.0-33                                otus
+```
+Так как Nginx уже установлен, установим репозиторий percona-release:
+
+```
+[root@localhost repo]# yum install -y percona-release.noarch
+Last metadata expiration check: 0:02:35 ago on Wed May 27 22:40:35 2026.
+Dependencies resolved.
+=============================================================================================================================
+ Package                             Architecture               Version                       Repository                Size
+=============================================================================================================================
+Installing:
+ percona-release                     noarch                     1.0-33                        otus                      27 k
+
+Transaction Summary
+=============================================================================================================================
+Install  1 Package
+
+Total download size: 27 k
+Installed size: 49 k
+Downloading Packages:
+percona-release-latest.noarch.rpm                                                             18 MB/s |  27 kB     00:00
+-----------------------------------------------------------------------------------------------------------------------------
+Total                                                                                        2.7 MB/s |  27 kB     00:00
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                                                                     1/1
+  Installing       : percona-release-1.0-33.noarch                                                                       1/1
+  Running scriptlet: percona-release-1.0-33.noarch                                                                       1/1
+* Enabling the Percona Release repository
+<*> All done!
+* Enabling the Percona Telemetry repository
+<*> All done!
+The percona-release package now contains a percona-release script that can enable additional repositories for our newer products.
+
+Note: currently there are no repositories that contain Percona products or distributions enabled. We recommend you to enable Percona Distribution repositories instead of individual product repositories, because with the Distribution you will get not only the database itself but also a set of other componets that will help you work with your database.
+
+For example, to enable the Percona Distribution for MySQL 8.0 repository use:
+
+  percona-release setup pdps8.0
+
+Note: To avoid conflicts with older product versions, the percona-release setup command may disable our original repository for some products.
+
+For more information, please visit:
+  https://docs.percona.com/percona-software-repositories/percona-release.html
+
+
+  Verifying        : percona-release-1.0-33.noarch                                                                       1/1
+
+Installed:
+  percona-release-1.0-33.noarch
+
+Complete!
+``
+
+Установка прошла успешно.
+
+
+
+
