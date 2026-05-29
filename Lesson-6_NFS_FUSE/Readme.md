@@ -329,3 +329,4 @@ root@nfsc:/mnt/upload# touch client_file
 root@nfsc:/mnt/upload# ls
 check_file  client_file
 ```
+Проверки прошли успешно, это значит, что проблем с правами нет.
