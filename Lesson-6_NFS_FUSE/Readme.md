@@ -1,15 +1,17 @@
 # Занятие 6. NFS, FUSE
 
-**Цель домашнего задания
+**Цель домашнего задания**\
 Научиться самостоятельно разворачивать сервис NFS и подключать к нему клиентов.
-**Описание домашнего задания 
+
+**Описание домашнего задания**\
 Основная часть: 
 - запустить 2 виртуальных машины (сервер NFS и клиента);
 - на сервере NFS должна быть подготовлена и экспортирована директория; 
 - в экспортированной директории должна быть поддиректория с именем upload с правами на запись в неё; 
 - экспортированная директория должна автоматически монтироваться на клиенте при старте виртуальной машины (systemd, autofs или fstab — любым способом);
 - монтирование и работа NFS на клиенте должна быть организована с использованием NFSv3.
-**Для самостоятельной реализации: 
+
+Для самостоятельной реализации: 
 - настроить аутентификацию через KERBEROS с использованием NFSv4.
 
 ## Создаём тестовые виртуальные машины 
@@ -18,8 +20,8 @@
 
 ## Настраиваем сервер NFS
 Заходим на сервер c NFS-сервером.
-Дальнейшие действия выполняются от имени пользователя имеющего повышенные привилегии, разрешающие описанные действия. 
-Установим сервер NFS:
+Дальнейшие действия выполняются от имени пользователя c повышенными привилегиями, разрешающими описанные действия. 
+Установим пакет NFS-сервера "nfs-kernel-server":
 
 ```
 root@nfss:/home/user# apt install nfs-kernel-server
@@ -110,7 +112,7 @@ No user sessions are running outdated binaries.
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 ```
 
-Настройки сервера находятся в файле /etc/nfs.conf  
+Настройки сервера находятся в файле /etc/nfs.conf.  
 Проверяем наличие слушающих портов 2049/udp, 2049/tcp,111/udp, 
 111/tcp (не все они будут использоваться далее,  но их наличие 
 сигнализирует о том, что необходимые сервисы готовы принимать 
@@ -126,8 +128,8 @@ tcp   LISTEN 0      4096                               [::]:111           [::]:*
 tcp   LISTEN 0      64                                 [::]:2049          [::]:*                                         
 ```
 
-Создаём и настраиваем директорию, которая будет экспортирована в 
-будущем  
+Создаём и настраиваем директорию, которая в 
+будущем  станет доступна по сети (доступна для экспорта):
 
 ```
 root@nfss:/home/user# mkdir -p /srv/share/upload
@@ -145,8 +147,7 @@ drwxr-xr-x 28 root   root    4096 May  3 10:44 ..
 drwxr-xr-x  3 nobody nogroup 4096 May 29 19:27 share
 ```
 
-Cоздаём в файле /etc/exports структуру, которая позволит 
-экспортировать ранее созданную директорию:
+Cоздаём в файле /etc/exports структуру, которая позволит экспортировать ранее созданную директорию:
 
 ```
 root@nfss:/etc# echo -n "/srv/share 192.168.1.74/32(rw,sync,root_squash)" >> /etc/exports
@@ -164,7 +165,7 @@ root@nfss:/etc# cat /etc/exports
 /srv/share 192.168.1.74/32(rw,sync,root_squash)
 ```
 
-Экспортируем ранее созданную директорию:
+Экспортируем ранее созданную директорию (перезапустим процесс синхронизации таблицы экспортированных директорий):
 
 ```
 root@nfss:/etc# exportfs -r
@@ -173,7 +174,7 @@ exportfs: /etc/exports [1]: Neither 'subtree_check' or 'no_subtree_check' specif
   NOTE: this default has changed since nfs-utils version 1.0.x
 ```
 
-Проверяем экспортированную директорию следующей командой
+Проверяем экспортированную директорию следующей командой (запросим текущий статус таблицы экспортированных директорий):
 
 ```
 root@nfss:/etc# exportfs -s
@@ -183,9 +184,8 @@ root@nfss:/etc# exportfs -s
 ## Настраиваем клиент NFS
 
 Заходим на сервер с клиентом. 
-Дальнейшие действия выполняются от имени пользователя имеющего 
-повышенные привилегии, разрешающие описанные действия.  
-Установим пакет с NFS-клиентом
+Дальнейшие действия выполняются от имени пользователя, имеющего повышенные привилегии, разрешающие описанные действия.  
+Установим пакет с NFS-клиентом "nfs-common":
 
 ```
 root@nfsc:/home/user# apt install nfs-common
@@ -261,7 +261,7 @@ No user sessions are running outdated binaries.
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 ```
 
-Настраиваем монтирование при старте системы: 
+Настраиваем монтирование удаленной (сетевой) директории при старте системы: 
 
 ```
 root@nfsc:/home/user# echo "192.168.1.73:/srv/share/ /mnt nfs vers=3,noauto,x-systemd.automount 0 0">> /etc/fstab
@@ -285,10 +285,8 @@ root@nfsc:/home/user# systemctl daemon-reload
 root@nfsc:/home/user# systemctl restart remote-fs.target
 ```
 
-Отметим, что в данном случае происходит автоматическая генерация 
-systemd units в каталоге /run/systemd/generator/, которые 
-производят монтирование при первом обращении к каталогу /mnt/. 
-Заходим в директорию /mnt/ и проверяем успешность монтирования:
+Отметим, что в данном случае происходит автоматическая генерация  systemd units в каталоге /run/systemd/generator/, которые производят монтирование при первом обращении к каталогу /mnt/. 
+Переходим в директорию /mnt/ и проверяем успешность монтирования:
 
 ```
 root@nfsc:/mnt# mount | grep mnt
@@ -296,37 +294,283 @@ systemd-1 on /mnt type autofs (rw,relatime,fd=71,pgrp=1,timeout=0,minproto=5,max
 192.168.1.73:/srv/share/ on /mnt type nfs (rw,relatime,vers=3,rsize=524288,wsize=524288,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,mountaddr=192.168.1.73,mountvers=3,mountport=55538,mountproto=udp,local_lock=none,addr=192.168.1.73)
 ```
 
-Проверка работоспособности  
-● Заходим на сервер.  
-● Заходим в каталог /srv/share/upload. 
+Проверка работоспособности:  
+● Заходим на сервер; 
+```
+ssh user@192.168.1.73
+```
+● Переходим в каталог /srv/share/upload; 
 ```
 root@nfss:/etc# cd /srv/share/upload
 root@nfss:/srv/share/upload#
 ```
-● Создаём тестовый файл touch check_file. 
+● Создаём тестовый файл "check_file"; 
 ```
 root@nfss:/srv/share/upload# touch check_file
 root@nfss:/srv/share/upload# ls
 check_file
 ```
-● Заходим на клиент. 
-● Заходим в каталог /mnt/upload.  
+● Заходим на клиент; 
+```
+ssh user@192.168.1.74
+```
+● Заходим в каталог /mnt/upload;  
 ```
 root@nfsc:/mnt# cd /mnt/upload
 root@nfsc:/mnt/upload#
 ```
-● Проверяем наличие ранее созданного файла. 
+● Проверяем наличие ранее созданного файла; 
 ```
 root@nfsc:/mnt/upload# ls
 check_file
 ```
-● Создаём тестовый файл touch client_file.  
+● Создаём тестовый файл touch client_file;  
 ```
 root@nfsc:/mnt/upload# touch client_file
 ```
-● Проверяем, что файл успешно создан.
+● Проверяем, что файл успешно создан. Так же видим, что нам доступен на чтение файл, созданный на сервере.
 ```
 root@nfsc:/mnt/upload# ls
 check_file  client_file
+root@nfsc:/mnt/upload# cat check_file
+Test
 ```
-Проверки прошли успешно, это значит, что проблем с правами нет.
+Проверки прошли успешно, следовательно проблем с правами доступа нет.
+
+Проверяем клиент:  
+1. перезагружаем клиент;
+```
+root@nfsc:/mnt/upload# reboot
+
+Broadcast message from root@nfsc on pts/1 (Sun 2026-05-31 11:49:17 UTC):
+
+The system will reboot now!
+
+root@nfsc:/mnt/upload#
+Remote side unexpectedly closed network connection
+```
+2. заходим на клиент;
+```
+Welcome to Ubuntu 24.04.4 LTS (GNU/Linux 6.13.2-061302-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sun May 31 11:49:54 AM UTC 2026
+
+  System load:    0.63              Processes:              272
+  Usage of /home: 10.6% of 1.90GB   Users logged in:        0
+  Memory usage:   9%                IPv4 address for ens33: 192.168.1.74
+  Swap usage:     0%
+
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
+
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+Expanded Security Maintenance for Applications is not enabled.
+
+32 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+
+Last login: Sun May 31 11:25:24 2026 from 192.168.1.72
+```
+3. заходим в каталог /mnt/upload;
+
+```
+root@nfsc:/home/user# cd /mnt/upload/
+root@nfsc:/mnt/upload#
+```
+4. проверяем наличие ранее созданных файлов - файлы в наличии.
+```
+root@nfsc:/mnt/upload# ls -la
+total 12
+drwxrwxrwx 2 nobody nogroup 4096 May 29 20:02 .
+drwxr-xr-x 3 nobody nogroup 4096 May 29 19:27 ..
+-rw-r--r-- 1 root   root       5 May 31 11:41 check_file
+-rw-r--r-- 1 nobody nogroup    0 May 29 20:02 client_file
+```
+
+Проверяем сервер:  
+1. заходим на сервер в отдельном окне терминала; 
+```
+ssh user@192.168.1.73
+
+Welcome to Ubuntu 24.04.4 LTS (GNU/Linux 6.8.0-111-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sun May 31 11:52:53 AM UTC 2026
+
+  System load:  0.0               Processes:              438
+  Usage of /:   38.4% of 9.75GB   Users logged in:        1
+  Memory usage: 11%               IPv4 address for ens33: 192.168.1.73
+  Swap usage:   0%
+
+
+Expanded Security Maintenance for Applications is not enabled.
+
+35 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+
+Last login: Sun May 31 11:25:14 2026 from 192.168.1.72
+
+```
+2. перезагружаем сервер; 
+```
+user@nfss:~$ sudo reboot
+[sudo] password for user:
+
+Broadcast message from root@nfss on pts/3 (Sun 2026-05-31 11:53:43 UTC):
+
+The system will reboot now!
+
+user@nfss:~$ Connection to 192.168.1.73 closed by remote host.
+Connection to 192.168.1.73 closed.
+```
+3. заходим на сервер; 
+```
+Welcome to Ubuntu 24.04.4 LTS (GNU/Linux 6.8.0-111-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sun May 31 11:54:00 AM UTC 2026
+
+  System load:  0.6               Processes:              479
+  Usage of /:   38.5% of 9.75GB   Users logged in:        0
+  Memory usage: 11%               IPv4 address for ens33: 192.168.1.73
+  Swap usage:   0%
+
+
+Expanded Security Maintenance for Applications is not enabled.
+
+35 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+
+Last login: Sun May 31 11:52:54 2026 from 192.168.1.72
+```
+4. проверяем наличие ранее созданных файлов в каталоге /srv/share/upload/; 
+```
+root@nfss:/home/user# ls -la /srv/share/upload/
+total 12
+drwxrwxrwx 2 nobody nogroup 4096 May 29 20:02 .
+drwxr-xr-x 3 nobody nogroup 4096 May 29 19:27 ..
+-rw-r--r-- 1 root   root       5 May 31 11:41 check_file
+-rw-r--r-- 1 nobody nogroup    0 May 29 20:02 client_file
+```
+5. проверяем таблицу экспорта exportfs -s; 
+```
+root@nfss:/home/user# exportfs -s
+/srv/share  192.168.1.74/32(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,root_squash,no_all_squash)
+```
+6. проверяем работу RPC showmount -a 192.168.50.10.
+```
+root@nfss:/home/user# showmount -a 192.168.1.73
+All mount points on 192.168.1.73:
+192.168.1.74:/srv/share
+```
+
+Проверяем клиент:  
+1. возвращаемся на клиент; 
+2. перезагружаем клиент; 
+```
+root@nfsc:/mnt/upload# reboot
+
+Broadcast message from root@nfsc on pts/1 (Sun 2026-05-31 11:58:53 UTC):
+
+The system will reboot now!
+
+root@nfsc:/mnt/upload#
+Remote side unexpectedly closed network connection
+```
+3. заходим на клиент; 
+```
+Welcome to Ubuntu 24.04.4 LTS (GNU/Linux 6.13.2-061302-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sun May 31 11:49:54 AM UTC 2026
+
+  System load:    0.63              Processes:              272
+  Usage of /home: 10.6% of 1.90GB   Users logged in:        0
+  Memory usage:   9%                IPv4 address for ens33: 192.168.1.74
+  Swap usage:     0%
+
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
+
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+Expanded Security Maintenance for Applications is not enabled.
+
+32 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+
+Last login: Sun May 31 11:49:55 2026 from 192.168.1.72
+```
+4. проверяем работу RPC showmount -a 192.168.50.10; 
+```
+root@nfsc:/home/user# showmount -a 192.168.1.73
+All mount points on 192.168.1.73:
+192.168.1.74:/srv/share
+```
+5. заходим в каталог /mnt/upload; 
+```
+root@nfsc:/home/user# cd /mnt/upload
+root@nfsc:/mnt/upload#
+```
+6. проверяем статус монтирования mount | grep mnt; 
+```
+root@nfsc:/mnt/upload# mount | grep mnt
+systemd-1 on /mnt type autofs (rw,relatime,fd=71,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=15848)
+192.168.1.73:/srv/share/ on /mnt type nfs (rw,relatime,vers=3,rsize=524288,wsize=524288,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,mountaddr=192.168.1.73,mountvers=3,mountport=44669,mountproto=udp,local_lock=none,addr=192.168.1.73)
+```
+7. проверяем наличие ранее созданных файлов - файлы в наличии; 
+```
+root@nfsc:/mnt/upload# ls -la
+total 12
+drwxrwxrwx 2 nobody nogroup 4096 May 29 20:02 .
+drwxr-xr-x 3 nobody nogroup 4096 May 29 19:27 ..
+-rw-r--r-- 1 root   root       5 May 31 11:41 check_file
+-rw-r--r-- 1 nobody nogroup    0 May 29 20:02 client_file
+```
+8. создаём финальный тестовый файл touch final_check; 
+```
+root@nfsc:/mnt/upload# touch final_check
+root@nfsc:/mnt/upload#
+```
+9. проверяем, что файл успешно создан.
+```
+root@nfsc:/mnt/upload# ls -la
+total 12
+drwxrwxrwx 2 nobody nogroup 4096 May 31 12:02 .
+drwxr-xr-x 3 nobody nogroup 4096 May 29 19:27 ..
+-rw-r--r-- 1 root   root       5 May 31 11:41 check_file
+-rw-r--r-- 1 nobody nogroup    0 May 29 20:02 client_file
+-rw-r--r-- 1 nobody nogroup    0 May 31 12:02 final_check
+```
+
+Вышеописанные проверки прошли успешно, следовательно демонстрационный стенд работоспособен и готов к работе.
