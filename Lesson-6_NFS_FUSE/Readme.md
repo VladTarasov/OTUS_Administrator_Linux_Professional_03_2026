@@ -574,3 +574,45 @@ drwxr-xr-x 3 nobody nogroup 4096 May 29 19:27 ..
 ```
 
 Вышеописанные проверки прошли успешно, следовательно демонстрационный стенд работоспособен и готов к работе.
+
+Подготовлены скрипты для настройки и проверки сервера и клиента.
+
+nfs_server_script.sh
+```
+#!/bin/bash
+
+apt install nfs-kernel-server &&
+
+mkdir -p /srv/share/upload &&
+
+chown -R nobody:nogroup /srv/share &&
+
+chmod 0777 /srv/share/upload &&
+
+echo -n "/srv/share 192.168.1.130/32(rw,sync,root_squash)" >> /etc/exports &&
+
+exportfs -r &&
+
+exportfs -s &&
+
+touch /srv/share/upload/test_file.txt &&
+
+ls /srv/share/upload
+```
+
+nfs_client_script.sh
+```
+#!/bin/bash
+
+apt install nfs-common &&
+
+echo "192.168.175.130:/srv/share/ /mnt nfs vers=3,noauto,x-systemd.automount 0 0" >> /etc/fstab &&
+
+systemctl daemon-reload &&
+
+systemctl restart remote-fs.target &&
+
+cd /mnt/upload;
+
+ls -la
+```
