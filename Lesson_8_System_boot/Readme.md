@@ -43,10 +43,10 @@ Remote side unexpectedly closed network connection
 
 <img width="641" height="536" alt="image" src="https://github.com/user-attachments/assets/39e712df-234b-4a2a-ae4b-f52873174d84" />
 
-**Способ 1. init=/bin/bash** 
 
-В конце строки, начинающейся с linux, добавляем 'init=/bin/bash' и нажимаем сtrl-x для 
-загрузки в системы 
+### **Способ 1. init=/bin/bash** 
+
+В конце строки, начинающейся с linux, добавляем 'init=/bin/bash' и нажимаем сtrl-x для загрузки в системы: 
 
 <img width="647" height="549" alt="image" src="https://github.com/user-attachments/assets/88bb0da7-77bc-4cf8-8663-2000c6817032" />
 
@@ -57,21 +57,20 @@ Remote side unexpectedly closed network connection
 Но есть один нюанс. Рутовая файловая система при этом монтируется в режиме Read-Only. Перемонтироуем
 ее в режим Read-Write: 
 
-
 <img width="802" height="652" alt="image" src="https://github.com/user-attachments/assets/ac4f851b-cf5f-454c-9c43-c6c1b4293d82" />
 
-После чего можно убедимся, записав данные в любой файл или прочитав вывод 
-команды 'mount':
+После чего можно убедимся, записав данные в любой файл или прочитав вывод команды 'mount':
 
 <img width="505" height="60" alt="image" src="https://github.com/user-attachments/assets/b197a324-c170-4fec-a35d-889c90181333" />
 
-**Способ 2. Recovery mode**
+
+### **Способ 2. Recovery mode**
 
 В меню загрузчика на первом уровне выбрать второй пункт (Advanced options…), 
 
 <img width="636" height="537" alt="image" src="https://github.com/user-attachments/assets/e92bec03-eb25-4d31-84f8-1d1d455a5931" />
 
-далее загрузить пункт меню с указанием "recovery mod" в названии. Попадаем вьщгте меню режима восстановления. 
+далее загрузить пункт меню с указанием "recovery mode" в названии. Попадаем вьщгте меню режима восстановления. 
 
 <img width="644" height="537" alt="image" src="https://github.com/user-attachments/assets/7c23528f-b2bd-4ed7-9f25-6a7724c1af85" />
 
@@ -84,6 +83,23 @@ Remote side unexpectedly closed network connection
 Далее выбираем пункт root и попадаем в консоль с пользователем root. Если вы ранее устанавливали пароль для пользователя root (по умолчанию его нет), то необходимо его ввести. В этой консоли можно производить любые манипуляции с системой. 
 
 <img width="722" height="436" alt="image" src="https://github.com/user-attachments/assets/88323188-89a2-417e-9ddc-23f347df4fa7" />
+
+### **Установить систему с LVM, после чего переименовать VG** 
+Мы установили систему Ubuntu 22.04 со стандартной разбивкой диска с использованием  LVM. Первым делом посмотрим текущее состояние системы (список Volume Group):
+
+<img width="445" height="89" alt="image" src="https://github.com/user-attachments/assets/b0ce3d58-c574-442f-81bc-3cb567ca453f" />
+
+Нас интересует вторая строка с именем Volume Group. Текущее имя "ubuntu-vg". Приступим к переименованию: 
+
+<img width="598" height="68" alt="image" src="https://github.com/user-attachments/assets/769b2e31-74cf-40f2-98f4-45ce4475dc44" />
+
+Далее правим /boot/grub/grub.cfg. Везде заменяем старое название VG на новое (в файле дефис меняется на два дефиса ubuntu--vg ubuntu--otus).  
+
+<img width="746" height="286" alt="image" src="https://github.com/user-attachments/assets/36f86cd4-8f9a-46cc-97d4-8c03082319c4" />
+
+После чего перезагружаемся и проверяем, что vlolume group имеет новое имя:
+
+<img width="743" height="167" alt="image" src="https://github.com/user-attachments/assets/4b7fa2de-daf1-4c79-b349-43a4907921ff" />
 
 
 
