@@ -42,3 +42,49 @@ Remote side unexpectedly closed network connection
 При загрузке виртуальной машины в окне выбора ядра для загрузки нажмем e - в данном контексте edit. Попадаем в окно, где мы можем изменить параметры загрузки:
 
 <img width="641" height="536" alt="image" src="https://github.com/user-attachments/assets/39e712df-234b-4a2a-ae4b-f52873174d84" />
+
+**Способ 1. init=/bin/bash** 
+
+В конце строки, начинающейся с linux, добавляем 'init=/bin/bash' и нажимаем сtrl-x для 
+загрузки в системы 
+
+<img width="647" height="549" alt="image" src="https://github.com/user-attachments/assets/88bb0da7-77bc-4cf8-8663-2000c6817032" />
+
+В целом на этом все, Мы попали в систему. 
+
+<img width="806" height="661" alt="image" src="https://github.com/user-attachments/assets/e315f2a6-0dc3-4b69-b18d-9199ac696baa" />
+
+Но есть один нюанс. Рутовая файловая система при этом монтируется в режиме Read-Only. Перемонтироуем
+ее в режим Read-Write: 
+
+
+<img width="802" height="652" alt="image" src="https://github.com/user-attachments/assets/ac4f851b-cf5f-454c-9c43-c6c1b4293d82" />
+
+После чего можно убедимся, записав данные в любой файл или прочитав вывод 
+команды 'mount':
+
+<img width="505" height="60" alt="image" src="https://github.com/user-attachments/assets/b197a324-c170-4fec-a35d-889c90181333" />
+
+**Способ 2. Recovery mode**
+
+В меню загрузчика на первом уровне выбрать второй пункт (Advanced options…), 
+
+<img width="636" height="537" alt="image" src="https://github.com/user-attachments/assets/e92bec03-eb25-4d31-84f8-1d1d455a5931" />
+
+далее загрузить пункт меню с указанием "recovery mod" в названии. Попадаем вьщгте меню режима восстановления. 
+
+<img width="644" height="537" alt="image" src="https://github.com/user-attachments/assets/7c23528f-b2bd-4ed7-9f25-6a7724c1af85" />
+
+<img width="707" height="354" alt="image" src="https://github.com/user-attachments/assets/e8233106-8ef5-4b67-bcda-21da2d84f2a6" />
+
+В этом меню сначала включаем поддержку сети (network) для того, чтобы файловая система перемонтировалась в режим read/write (либо это можно сделать вручную). 
+
+<img width="720" height="393" alt="image" src="https://github.com/user-attachments/assets/3c1c0aef-b977-4c37-9e9d-eef328d776c3" />
+
+Далее выбираем пункт root и попадаем в консоль с пользователем root. Если вы ранее устанавливали пароль для пользователя root (по умолчанию его нет), то необходимо его ввести. В этой консоли можно производить любые манипуляции с системой. 
+
+<img width="722" height="436" alt="image" src="https://github.com/user-attachments/assets/88323188-89a2-417e-9ddc-23f347df4fa7" />
+
+
+
+
