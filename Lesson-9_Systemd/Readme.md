@@ -371,3 +371,72 @@ OPTIONS="-u www-data -g www-data -s $SOCKET -S -M 0600 -C 32 -F 1 --
 /usr/bin/php-cgi"
 ```
 
+Юнит-файл будет примерно следующего вида: 
+```
+root@grub:/home/grub# cat /etc/systemd/system/spawn-fcgi.service
+[Unit]
+Description=Spawn-fcgi startup service by Otus
+After=network.target
+
+[Service]
+Type=simple
+PIDFile=/var/run/spawn-fcgi.pid
+EnvironmentFile=/etc/spawn-fcgi/fcgi.conf
+ExecStart=/usr/bin/spawn-fcgi -n $OPTIONS
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Убеждаемся, что все успешно работает:
+```
+root@grub:/home/grub#  systemctl start spawn-fcgi
+root@grub:/home/grub#  systemctl status spawn-fcgi
+● spawn-fcgi.service - Spawn-fcgi startup service by Otus
+     Loaded: loaded (/etc/systemd/system/spawn-fcgi.service; disabled; vendor preset: enabled)
+     Active: active (running) since Sun 2026-06-14 20:02:30 UTC; 10s ago
+   Main PID: 1469 (php-cgi)
+      Tasks: 33 (limit: 4510)
+     Memory: 18.9M
+        CPU: 122ms
+     CGroup: /system.slice/spawn-fcgi.service
+             ├─1469 /usr/bin/php-cgi
+             ├─1470 /usr/bin/php-cgi
+             ├─1471 /usr/bin/php-cgi
+             ├─1472 /usr/bin/php-cgi
+             ├─1473 /usr/bin/php-cgi
+             ├─1474 /usr/bin/php-cgi
+             ├─1475 /usr/bin/php-cgi
+             ├─1476 /usr/bin/php-cgi
+             ├─1477 /usr/bin/php-cgi
+             ├─1478 /usr/bin/php-cgi
+             ├─1479 /usr/bin/php-cgi
+             ├─1480 /usr/bin/php-cgi
+             ├─1481 /usr/bin/php-cgi
+             ├─1482 /usr/bin/php-cgi
+             ├─1483 /usr/bin/php-cgi
+             ├─1484 /usr/bin/php-cgi
+             ├─1485 /usr/bin/php-cgi
+             ├─1486 /usr/bin/php-cgi
+             ├─1487 /usr/bin/php-cgi
+             ├─1488 /usr/bin/php-cgi
+             ├─1489 /usr/bin/php-cgi
+             ├─1490 /usr/bin/php-cgi
+             ├─1491 /usr/bin/php-cgi
+             ├─1492 /usr/bin/php-cgi
+             ├─1493 /usr/bin/php-cgi
+             ├─1494 /usr/bin/php-cgi
+             ├─1495 /usr/bin/php-cgi
+             ├─1496 /usr/bin/php-cgi
+             ├─1497 /usr/bin/php-cgi
+             ├─1498 /usr/bin/php-cgi
+             ├─1499 /usr/bin/php-cgi
+             ├─1500 /usr/bin/php-cgi
+             └─1501 /usr/bin/php-cgi
+
+Jun 14 20:02:30 grub systemd[1]: Started Spawn-fcgi startup service by Otus.
+```
+
+## Доработать unit-файл Nginx (nginx.service) для запуска нескольких инстансов сервера с разными конфигурационными файлами одновременно.
+
