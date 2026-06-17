@@ -72,22 +72,34 @@ root@grub:/home/grub# systemctl start watchlog.service
 root@grub:/home/grub# cat > /etc/systemd/system/watchlog.timer
 [Unit]
 Description=Run watchlog script every 30 second
+
 [Timer]
 # Run every 30 second
-OnUnitActiveSec=30
+AccuracySec=1s
+OnUnitActiveSec=30s
 Unit=watchlog.service
+
 [Install]
 WantedBy=multi-user.target
 ```
 
 Запустим timer и убедимся в его работоспособности:
 ```
-root@grub:/home/grub# tail -n 100 /var/log/syslog | grep word
-Jun 13 10:48:45 grub root: Sat Jun 13 10:48:45 AM UTC 2026: I found word, Master!
-Jun 13 10:49:27 grub root: Sat Jun 13 10:49:27 AM UTC 2026: I found word, Master!
-Jun 13 10:50:03 grub root: Sat Jun 13 10:50:03 AM UTC 2026: I found word, Master!
-Jun 13 10:50:50 grub root: Sat Jun 13 10:50:50 AM UTC 2026: I found word, Master!
-Jun 13 10:52:03 grub root: Sat Jun 13 10:52:03 AM UTC 2026: I found word, Master!
+root@user:/home/user# nano /opt/watchlog.sh
+...
+2026-06-17T20:27:59.083746+00:00 user systemd[1]: Starting watchlog.service - My watchlog service...
+2026-06-17T20:27:59.106491+00:00 user root: Wed Jun 17 08:27:59 PM UTC 2026: I found word, Master!
+2026-06-17T20:27:59.107793+00:00 user systemd[1]: watchlog.service: Deactivated successfully.
+2026-06-17T20:27:59.110199+00:00 user systemd[1]: Finished watchlog.service - My watchlog service.
+2026-06-17T20:28:30.084711+00:00 user systemd[1]: Starting watchlog.service - My watchlog service...
+2026-06-17T20:28:30.104736+00:00 user root: Wed Jun 17 08:28:30 PM UTC 2026: I found word, Master!
+2026-06-17T20:28:30.107764+00:00 user systemd[1]: watchlog.service: Deactivated successfully.
+2026-06-17T20:28:30.109690+00:00 user systemd[1]: Finished watchlog.service - My watchlog service.
+2026-06-17T20:29:01.084451+00:00 user systemd[1]: Starting watchlog.service - My watchlog service...
+2026-06-17T20:29:01.103837+00:00 user root: Wed Jun 17 08:29:01 PM UTC 2026: I found word, Master!
+2026-06-17T20:29:01.108002+00:00 user systemd[1]: watchlog.service: Deactivated successfully.
+2026-06-17T20:29:01.109488+00:00 user systemd[1]: Finished watchlog.service - My watchlog service.
+...
 ```
 
 ## Установить spawn-fcgi и создать unit-файл (spawn-fcgi.sevice) с помощью переделки init-скрипта
