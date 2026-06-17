@@ -34,6 +34,7 @@ ALERT
 Создадим скрипт для поиска ключевого слова:
 ```
 root@grub:/home/grub# cat > /opt/watchlog.sh
+#!/bin/bash
 WORD="ALERT"
 LOG="/var/log/watchlog.log"
 DATE=`date`
