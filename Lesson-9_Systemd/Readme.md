@@ -440,3 +440,160 @@ Jun 14 20:02:30 grub systemd[1]: Started Spawn-fcgi startup service by Otus.
 
 ## Доработать unit-файл Nginx (nginx.service) для запуска нескольких инстансов сервера с разными конфигурационными файлами одновременно.
 
+Установим Nginx из стандартного репозитория:
+```
+root@user:/home/user# apt install nginx -y
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  nginx-common
+Suggested packages:
+  fcgiwrap nginx-doc ssl-cert
+The following NEW packages will be installed:
+  nginx nginx-common
+0 upgraded, 2 newly installed, 0 to remove and 69 not upgraded.
+Need to get 564 kB of archives.
+After this operation, 1,624 kB of additional disk space will be used.
+Get:1 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 nginx-common all 1.24.0-2ubuntu7.12 [44.5 kB]
+Get:2 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 nginx arm64 1.24.0-2ubuntu7.12 [519 kB]
+Fetched 564 kB in 2s (343 kB/s)
+Preconfiguring packages ...
+Selecting previously unselected package nginx-common.
+(Reading database ... 92102 files and directories currently installed.)
+Preparing to unpack .../nginx-common_1.24.0-2ubuntu7.12_all.deb ...
+Unpacking nginx-common (1.24.0-2ubuntu7.12) ...
+Selecting previously unselected package nginx.
+Preparing to unpack .../nginx_1.24.0-2ubuntu7.12_arm64.deb ...
+Unpacking nginx (1.24.0-2ubuntu7.12) ...
+Setting up nginx-common (1.24.0-2ubuntu7.12) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/nginx.service → /usr/lib/systemd/system/nginx.service.
+Setting up nginx (1.24.0-2ubuntu7.12) ...
+ * Upgrading binary nginx                                                                    [ OK ] 
+Processing triggers for man-db (2.12.0-4build2) ...
+Processing triggers for ufw (0.36.2-6) ...
+Scanning processes...                                                                               
+Scanning processor microcode...                                                                     
+Scanning linux images...                                                                            
+
+Running kernel seems to be up-to-date.
+
+The processor microcode seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+```
+
+Для запуска нескольких экземпляров сервиса модифицируем исходный service для
+использования различной конфигурации, а также PID-файлов. Для этого создадим
+новый Unit для работы с шаблонами (/etc/systemd/system/nginx@.service):
+```
+root@user:/home/user# cat /etc/systemd/system/nginx@.service
+# Stop dance for nginx
+# =======================
+#
+# ExecStop sends SIGSTOP (graceful stop) to the nginx process.
+# If, after 5s (--retry QUIT/5) nginx is still running, systemd
+takes control
+# and sends SIGTERM (fast shutdown) to the main process.
+# After another 5s (TimeoutStopSec=5), and if nginx is alive,
+systemd sends
+# SIGKILL to all the remaining processes in the process group
+(KillMode=mixed).
+#
+# nginx signals reference doc:
+# http://nginx.org/en/docs/control.html
+#
+[Unit]
+Description=A high performance web server and a reverse proxy server
+Documentation=man:nginx(8)
+After=network.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=/run/nginx-%I.pid
+ExecStartPre=/usr/sbin/nginx -t -c /etc/nginx/nginx-%I.conf -q -g 'daemon on; master_process on;'
+ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx-%I.conf -g 'daemon on; master_process on;'
+ExecReload=/usr/sbin/nginx -c /etc/nginx/nginx-%I.conf -g 'daemon on; master_process on;' -s reload
+ExecStop=-/sbin/start-stop-daemon --quiet --stop --retry QUIT/5 --pidfile /run/nginx-%I.pid
+TimeoutStopSec=5
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Далее необходимо создать два файла конфигурации (/etc/nginx/nginx-first.conf,
+/etc/nginx/nginx-second.conf). Их можно сформировать из стандартного конфига
+/etc/nginx/nginx.conf, с модификацией путей до PID-файлов и разделением по портам:
+```
+root@user:/home/user# cat > /etc/nginx/nginx-first.conf
+pid /run/nginx-first.pid;
+events {}
+http {
+	server {
+	     listen 9001;
+     }
+#include /etc/nginx/sites-enabled/*;
+}
+
+root@user:/home/user# cat > /etc/nginx/nginx-second.conf 
+pid /run/nginx-second.pid;
+events {}
+http {
+     server {
+          listen 9002;
+     }
+#include /etc/nginx/sites-enabled/*;
+}
+```
+
+Этого достаточно для успешного запуска сервисов.
+Проверим работу:
+```
+root@user:/home/user# systemctl start nginx@first
+root@user:/home/user# systemctl start nginx@second
+root@user:/home/user# systemctl status nginx@first
+● nginx@first.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/etc/systemd/system/nginx@.service; disabled; preset: enabled)
+     Active: active (running) since Wed 2026-06-17 20:04:29 UTC; 21s ago
+       Docs: man:nginx(8)
+    Process: 2715 ExecStartPre=/usr/sbin/nginx -t -c /etc/nginx/nginx-first.conf -q -g daemon on; m>
+    Process: 2717 ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx-first.conf -g daemon on; master_pro>
+   Main PID: 2718 (nginx)
+      Tasks: 2 (limit: 2207)
+     Memory: 1.5M (peak: 1.7M)
+        CPU: 16ms
+     CGroup: /system.slice/system-nginx.slice/nginx@first.service
+             ├─2718 "nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx-first.conf -g daemon>
+             └─2719 "nginx: worker process"
+
+Jun 17 20:04:29 user systemd[1]: Starting nginx@first.service - A high performance web server and a>
+Jun 17 20:04:29 user systemd[1]: Started nginx@first.service - A high performance web server and a >
+root@user:/home/user# systemctl status nginx@second
+● nginx@second.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/etc/systemd/system/nginx@.service; disabled; preset: enabled)
+     Active: active (running) since Wed 2026-06-17 20:04:42 UTC; 17s ago
+       Docs: man:nginx(8)
+    Process: 2722 ExecStartPre=/usr/sbin/nginx -t -c /etc/nginx/nginx-second.conf -q -g daemon on; >
+    Process: 2724 ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx-second.conf -g daemon on; master_pr>
+   Main PID: 2725 (nginx)
+      Tasks: 2 (limit: 2207)
+     Memory: 1.5M (peak: 1.5M)
+        CPU: 13ms
+     CGroup: /system.slice/system-nginx.slice/nginx@second.service
+             ├─2725 "nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx-second.conf -g daemo>
+             └─2726 "nginx: worker process"
+
+Jun 17 20:04:42 user systemd[1]: Starting nginx@second.service - A high performance web server and >
+Jun 17 20:04:42 user systemd[1]: Started nginx@second.service - A high performance web server and a>
+Jun 17 20:05:00 user systemd[1]: /etc/systemd/system/nginx@.service:6: Assignment outside of sectio>
+Jun 17 20:05:00 user systemd[1]: /etc/systemd/system/nginx@.service:9: Assignment outside of sectio>
+Jun 17 20:05:00 user systemd[1]: /etc/systemd/system/nginx@.service:11: Assignment outside of secti>
+```
+
