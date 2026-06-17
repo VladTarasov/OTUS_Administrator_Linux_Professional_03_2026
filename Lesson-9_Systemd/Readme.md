@@ -596,4 +596,23 @@ Jun 17 20:05:00 user systemd[1]: /etc/systemd/system/nginx@.service:6: Assignmen
 Jun 17 20:05:00 user systemd[1]: /etc/systemd/system/nginx@.service:9: Assignment outside of sectio>
 Jun 17 20:05:00 user systemd[1]: /etc/systemd/system/nginx@.service:11: Assignment outside of secti>
 ```
+По выводам команд status видим, что оба сервиса запустились корректно.
 
+Проверить можно несколькими способами, например, посмотреть, что nginx прослушиватся на заданных в конфигурационном файле портах:
+```
+root@user:/home/user# ss -tnulp | grep nginx
+tcp   LISTEN 0      511                              0.0.0.0:9002      0.0.0.0:*    users:(("nginx",pid=2726,fd=4),("nginx",pid=2725,fd=4))
+tcp   LISTEN 0      511                              0.0.0.0:9001      0.0.0.0:*    users:(("nginx",pid=2719,fd=4),("nginx",pid=2718,fd=4))
+```
+
+Или просмотреть список процессов:
+```
+root@user:/home/user# ps afx | grep nginx
+   2818 pts/1    S+     0:00                              \_ grep --color=auto nginx
+   2718 ?        Ss     0:00 nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx-first.conf -g daemon on; master_process on;
+   2719 ?        S      0:00  \_ nginx: worker process
+   2725 ?        Ss     0:00 nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx-second.conf -g daemon on; master_process on;
+   2726 ?        S      0:00  \_ nginx: worker process
+```
+
+Видим две группы процессов Nginx, а значит всё в порядке. В процессе отладки запуска служб была добавлена секция events {} в их конфигурационные файлы.
