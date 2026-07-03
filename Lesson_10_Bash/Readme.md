@@ -47,7 +47,11 @@ crontab -e
 sudo crontab -e
 * * * * * /bin/bash /home/user/report.sh
 ```
-
+рабочий вариант для запуска каждый час
+```
+sudo crontab -e
+0 * * * * /bin/bash /home/user/report.sh
+```
 измененный скрипт заглушка
 ```
 #!/bin/bash
