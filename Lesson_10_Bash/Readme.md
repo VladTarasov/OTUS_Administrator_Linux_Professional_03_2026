@@ -38,9 +38,62 @@
 2. Предотвращение запуска копии скрипта. Как? 
 3. Отправка отчета по почте (реализовать непосредственно в скрипте?).
 
+
+
+Промежуточные варианты итогового скрипта
+
+```
+#!/bin/bash
+
+# Обрабатываемый временной диапазон
+
+CURRENT_TIME=$(date "+%Y-%m-%d_%H-%M-%S")
+LAST_TIME=$(date -d '1 minute ago' '+%Y-%m-%d_%H-%M-%S')
+
+echo "Обрабатываемый временной диапазон $LAST_TIME - $CURRENT_TIME"
+
+# Имя файла блокировки поместим в переменную
+LOCKFILE="/var/lock/report_script.lock"
+
+# Проверяем и создаем блокировку
+
+exec 9> "$LOCKFILE"
+if ! flock -n 9; then
+    echo "Ошибка: Скрипт уже запущен." >&2
+    exit 1
+fi
+
+echo "Скрипт запущен и выполняется..."
+
+### --- Основной код скрипта --- ###
+
+echo 'Hello, world' > /home/user/reports/"report_file_$(date "+%Y-%m-%d_%H-%M-%S").txt"
+
+# Отбор свежего файла с отчетом
+
+REPORT=$(ls -t /home/user/reports | head -n 1)
+
+echo "" && cat "/home/user/reports/$REPORT" && echo ""
+
+#Передача файла почтовому клиенту (бутафорская)
+
+#echo "Отчет за период $LAST_TIME - $CURRENT_TIME" | mutt -s "Web-server access report" -a $REPORT -- recipient@example.com
+
+### --- Основной код скрипта --- ###
+
+# Пауза перед завершением и оповещение о завершении работы скрипта
+
+sleep 10
+echo "Скрипт завершил работу."
+```
+
+
 1. Скрипт-болванка (hello world), который cron будет запускать каждый час (минуту для теста).
 
 ```
+touch report.sh
+chmod +x report.sh
+mkdir reports
 sudo crontab -u user -e
 * * * * * /bin/bash /home/user/report.sh
 ```
@@ -49,6 +102,7 @@ sudo crontab -u user -e
 sudo crontab -u user -e
 0 * * * * /bin/bash /home/user/report.sh
 ```
+
 Тестовый скрипт
 ```
 #!/bin/bash
@@ -73,9 +127,11 @@ if ! flock -n 9; then
 fi
 echo "Скрипт запущен и выполняется..."
 
-# --- Основной код скрипта ---
+### --- Основной код скрипта --- ###
+
 echo 'Hello, world' > /home/user/reports/"report_file_$(date "+%Y-%m-%d_%H-%M-%S").txt"
-# --- Основной код скрипта ---
+
+### --- Основной код скрипта --- ###
 
 # Пауза перед завершением и оповещение о завершении работы скрипта
 sleep 10
@@ -91,7 +147,21 @@ echo "Скрипт завершил работу."
 
 3. Отправка отчета на e-mail
 
-обращение к самому свежему файлу в катологе
+Обращение к самому свежему файлу в катологе с отчетами
 ```
-cat "$(ls -t | head -n 1)
+REPORT=$(ls -t /home/user/reports | head -n 1)
+
+обрабатываемый временной диапазон (minute заменить на hour в рабочем варианте)
+
+CCURRENT_TIME=$(date "+%Y-%m-%d_%H-%M-%S")
+LAST_TIME=$(date -d '1 minute ago' '+%Y-%m-%d_%H-%M-%S')
+
+echo "Обрабатываемый временной диапазон $LAST_TIME - $CURRENT_TIME"
+
+Отправка файла по почте (бутафорская)
+
+echo "Отчет за период $LAST_TIME - $CURRENT_TIME" | mutt -s "Web-server access report" -a $REPORT -- recipient@example.com
+
+
+
 ```
