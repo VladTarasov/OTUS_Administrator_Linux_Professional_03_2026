@@ -411,7 +411,7 @@ Type=oneshot
 Environment="BORG_PASSPHRASE=Otus1234"
 
 # Репозиторий
-Environment=REPO=borg@192.168.11.160:/var/backup/
+Environment=REPO=borg@192.168.1.77:/var/backup/
 
 # Что бэкапим
 Environment=BACKUP_TARGET=/etc
@@ -447,6 +447,8 @@ user@client:~$ sudo systemctl status borg-backup.timer
    Triggers: ● borg-backup.service
 
 Jul 21 19:08:42 client systemd[1]: Started borg-backup.timer - Borg Backup.
+
+user@client:~$ sudo systemctl daemon-reload
 ```
 Проверяем работу таймера
 ```
