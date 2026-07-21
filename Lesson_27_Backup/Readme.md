@@ -364,8 +364,89 @@ Chunk index:                     808                  840
 ```
 Смотрим, что у нас получилось
 ```
-root@client:~# borg list borg@192.168.1.77:/var/backup/
+user@client:~$ borg list borg@192.168.1.77:/var/backup/
 borg@192.168.1.77's password: 
 Enter passphrase for key ssh://borg@192.168.1.77/var/backup: 
 etc-2026-07-20_19:38:                Mon, 2026-07-20 19:38:28 [3d4c92507d01bea0736befcc0daf598d014fb52ec6885495123d9b28d72cc547]
+etc-2026-07-21_18:51:05              Tue, 2026-07-21 18:51:12 [ea0b454aee9f9f1007279264de92f6fd5eab5e3a94dea2f299d430feb5623f51]
+```
+Смотрим список файлов (вывод сокращен)
+```
+user@client:~$ borg list borg@192.168.1.77:/var/backup/::etc-2026-07-21_18:51:05
+borg@192.168.1.77's password: 
+Enter passphrase for key ssh://borg@192.168.1.77/var/backup: 
+drwxr-xr-x root   root          0 Mon, 2026-07-20 19:04:08 etc
+lrwxrwxrwx root   root         27 Mon, 2026-07-20 18:39:51 etc/localtime -> /usr/share/zoneinfo/Etc/UTC
+lrwxrwxrwx root   root         19 Tue, 2026-02-10 00:33:00 etc/mtab -> ../proc/self/mounts
+lrwxrwxrwx root   root         21 Fri, 2026-02-06 07:23:01 etc/os-release -> ../usr/lib/os-release
+lrwxrwxrwx root   root         39 Tue, 2026-02-10 00:33:25 etc/resolv.conf -> ../run/systemd/resolve/stub-resolv.conf
+lrwxrwxrwx root   root         16 Tue, 2026-02-10 00:33:00 etc/vconsole.conf -> default/keyboard
+lrwxrwxrwx root   root         23 Mon, 2024-02-26 12:58:31 etc/vtrgb -> /etc/alternatives/vtrgb
+drwxr-xr-x root   root          0 Tue, 2026-02-10 00:41:41 etc/ModemManager
+drwxr-xr-x root   root          0 Tue, 2026-02-10 00:41:41 etc/ModemManager/connection.d
+drwxr-xr-x root   root          0 Tue, 2026-02-10 00:41:41 etc/ModemManager/fcc-unlock.d
+...
+```
+Достаем файл из бекапа и проверяем его содержимое
+```
+user@client:~$ borg extract borg@192.168.1.77:/var/backup/::etc-2026-07-21_18:51:05 etc/hostname
+borg@192.168.1.77's password: 
+Enter passphrase for key ssh://borg@192.168.1.77/var/backup: 
+user@client:~$ ls -l etc/hostname 
+-rw-r--r-- 1 user user 7 Jul 20 18:38 etc/hostname
+user@client:~$ cat etc/hostname
+client
+```
+## Автоматизируем создание бэкапов с помощью systemd
+Создаем сервис и таймер в каталоге /etc/systemd/system/
+```
+nano /etc/systemd/system/borg-backup.service
+[Unit]
+Description=Borg Backup
+
+[Service]
+Type=oneshot
+
+# Парольная фраза
+Environment="BORG_PASSPHRASE=Otus1234"
+
+# Репозиторий
+Environment=REPO=borg@192.168.11.160:/var/backup/
+
+# Что бэкапим
+Environment=BACKUP_TARGET=/etc
+
+# Создание бэкапа
+ExecStart=/bin/borg create --stats ${REPO}::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} ${BACKUP_TARGET}
+
+# Проверка бэкапа
+ExecStart=/bin/borg check ${REPO}
+
+# Очистка старых бэкапов
+ExecStart=/bin/borg prune --keep-daily 90 --keep-monthly 12 --keep-yearly 1 ${REPO}
+
+
+nano /etc/systemd/system/borg-backup.timer
+[Unit]
+Description=Borg Backup
+[Timer]
+OnUnitActiveSec=5min
+[Install]
+WantedBy=timers.target
+```
+Включаем и запускаем службу таймера
+```
+user@client:~$ sudo systemctl enable borg-backup.timer
+Created symlink /etc/systemd/system/timers.target.wants/borg-backup.timer → /etc/systemd/system/borg-backup.timer.
+user@client:~$ sudo systemctl start borg-backup.timer
+user@client:~$ sudo systemctl status borg-backup.timer
+● borg-backup.timer - Borg Backup
+     Loaded: loaded (/etc/systemd/system/borg-backup.timer; enabled; preset: enabled)
+     Active: active (elapsed) since Tue 2026-07-21 19:08:42 UTC; 17s ago
+    Trigger: n/a
+   Triggers: ● borg-backup.service
+
+Jul 21 19:08:42 client systemd[1]: Started borg-backup.timer - Borg Backup.
+```
+Проверяем работу таймера
 ```
