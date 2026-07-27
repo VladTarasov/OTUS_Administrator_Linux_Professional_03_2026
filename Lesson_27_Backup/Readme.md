@@ -43,6 +43,8 @@ sda                         8:0    0 20.4G  0 disk
 sdb                         8:16   0    2G  0 disk 
 sr0                        11:0    1 1024M  0 rom  
 ```
+
+Переделать без LVM!!!
 Для гипотетических целей дальнейшго мастабирования будем использовать lvm:
 - создадим physical volume
 - создадим volume group
@@ -274,8 +276,7 @@ No user sessions are running outdated binaries.
 
 No VM guests are running outdated hypervisor (qemu) binaries on this host.
 ```
-На сервере backup создаем пользователя borg и каталог /var/backup (каталог и диск ~2Gb создан и примонтированы в предыдущем шаге)
-и назначаем на него права пользователя borg:
+На сервере backup создаем пользователя borg и каталог /var/backup (каталог и диск ~2Gb создан и примонтированы в предыдущем шаге) и назначаем на него права пользователя borg:
 ```
 root@backup:~# useradd -m borg
 root@backup:~# chown borg:borg /var/backup/
@@ -290,7 +291,7 @@ $ touch .ssh/authorized_keys
 $ chmod 700 .ssh
 $ chmod 600 .ssh/authorized_keys
 ```
-На сервере client:
+На сервере client (парольную фразу при этом не устанавливаем)
 ```
 root@client:~# ssh-keygen
 Generating public/private ed25519 key pair.
@@ -313,6 +314,21 @@ The key's randomart image is:
 |         . .. o o|
 |          . .o.. |
 +----[SHA256]-----+
+```
+Передаем ключ на сервер backup
+```
+root@client:~# ssh-copy-id borg@192.168.1.77
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/root/.ssh/id_ed25519.pub"
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+Enter passphrase for key '/root/.ssh/id_ed25519': 
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+Enter passphrase for key '/root/.ssh/id_ed25519': 
+borg@192.168.1.77's password: 
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh 'borg@192.168.1.77'"
+and check to make sure that only the key(s) you wanted were added.
 ```
 ## Все дальнейшие действия будут проходить на client сервере.
 Инициализируем репозиторий borg на backup сервере с client сервера:
@@ -406,9 +422,10 @@ Description=Borg Backup
 
 [Service]
 Type=oneshot
+User=root
 
 # Парольная фраза
-Environment="BORG_PASSPHRASE=Otus1234"
+Environment=BORG_PASSPHRASE=borg
 
 # Репозиторий
 Environment=REPO=borg@192.168.1.77:/var/backup/
@@ -452,3 +469,28 @@ user@client:~$ sudo systemctl daemon-reload
 ```
 Проверяем работу таймера
 ```
+Jul 27 19:54:14 client systemd[1]: Started borg-backup.timer - Borg Backup.
+root@client:~# systemctl list-timers --all
+NEXT                            LEFT LAST                              PASSED UNIT                         >
+Mon 2026-07-27 19:58:51 UTC 3min 10s Mon 2026-07-27 19:53:51 UTC 1min 49s ago borg-backup.timer            >
+Mon 2026-07-27 20:00:00 UTC 4min 18s Mon 2026-07-27 19:50:22 UTC     5min ago sysstat-collect.timer        >
+Mon 2026-07-27 20:08:50 UTC    13min Mon 2026-07-27 19:25:19 UTC    30min ago fwupd-refresh.timer          >
+Mon 2026-07-27 20:32:27 UTC    36min Mon 2026-07-20 18:39:49 UTC            - fstrim.timer                 >
+Tue 2026-07-28 00:00:00 UTC  4h 4min Mon 2026-07-27 19:04:31 UTC    51min ago dpkg-db-backup.timer         >
+Tue 2026-07-28 00:00:00 UTC  4h 4min Mon 2026-07-27 19:04:31 UTC    51min ago logrotate.timer              >
+Tue 2026-07-28 00:07:00 UTC 4h 11min -                                      - sysstat-summary.timer        >
+Tue 2026-07-28 01:12:26 UTC 5h 16min Fri 2026-07-24 14:20:18 UTC            - man-db.timer                 >
+Tue 2026-07-28 03:52:22 UTC       7h Fri 2026-07-24 14:40:32 UTC            - motd-news.timer              >
+Tue 2026-07-28 05:20:04 UTC       9h Mon 2026-07-20 18:39:49 UTC            - apt-daily.timer              >
+Tue 2026-07-28 06:48:35 UTC      10h Mon 2026-07-27 19:47:59 UTC     7min ago apt-daily-upgrade.timer      >
+Tue 2026-07-28 19:09:59 UTC      23h Mon 2026-07-27 19:09:59 UTC    45min ago update-notifier-download.time>
+Tue 2026-07-28 19:19:37 UTC      23h Mon 2026-07-27 19:19:37 UTC    36min ago systemd-tmpfiles-clean.timer >
+Thu 2026-07-30 16:17:09 UTC   2 days Mon 2026-07-20 18:39:49 UTC            - update-notifier-motd.timer   >
+Sun 2026-08-02 03:10:50 UTC   5 days Mon 2026-07-27 19:05:40 UTC    50min ago e2scrub_all.timer            >
+-                                  - -                                      - apport-autoreport.timer      >
+-                                  - -                                      - snapd.snap-repair.timer      >
+-                                  - -                                      - ua-timer.timer               >
+
+18 timers listed.
+```
+До следующего срабатывания таймер осталось '1min 49s'.
