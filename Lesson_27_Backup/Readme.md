@@ -467,30 +467,70 @@ Jul 21 19:08:42 client systemd[1]: Started borg-backup.timer - Borg Backup.
 
 user@client:~$ sudo systemctl daemon-reload
 ```
-Проверяем работу таймера
+Проверяем работу таймера и службы
 ```
-Jul 27 19:54:14 client systemd[1]: Started borg-backup.timer - Borg Backup.
-root@client:~# systemctl list-timers --all
+root@client:~/.ssh# watch -n1 'systemctl status borg-backup.timer'
+root@client:~/.ssh# systemctl list-timers --all
 NEXT                            LEFT LAST                              PASSED UNIT                         >
-Mon 2026-07-27 19:58:51 UTC 3min 10s Mon 2026-07-27 19:53:51 UTC 1min 49s ago borg-backup.timer            >
-Mon 2026-07-27 20:00:00 UTC 4min 18s Mon 2026-07-27 19:50:22 UTC     5min ago sysstat-collect.timer        >
-Mon 2026-07-27 20:08:50 UTC    13min Mon 2026-07-27 19:25:19 UTC    30min ago fwupd-refresh.timer          >
-Mon 2026-07-27 20:32:27 UTC    36min Mon 2026-07-20 18:39:49 UTC            - fstrim.timer                 >
-Tue 2026-07-28 00:00:00 UTC  4h 4min Mon 2026-07-27 19:04:31 UTC    51min ago dpkg-db-backup.timer         >
-Tue 2026-07-28 00:00:00 UTC  4h 4min Mon 2026-07-27 19:04:31 UTC    51min ago logrotate.timer              >
-Tue 2026-07-28 00:07:00 UTC 4h 11min -                                      - sysstat-summary.timer        >
-Tue 2026-07-28 01:12:26 UTC 5h 16min Fri 2026-07-24 14:20:18 UTC            - man-db.timer                 >
-Tue 2026-07-28 03:52:22 UTC       7h Fri 2026-07-24 14:40:32 UTC            - motd-news.timer              >
-Tue 2026-07-28 05:20:04 UTC       9h Mon 2026-07-20 18:39:49 UTC            - apt-daily.timer              >
-Tue 2026-07-28 06:48:35 UTC      10h Mon 2026-07-27 19:47:59 UTC     7min ago apt-daily-upgrade.timer      >
-Tue 2026-07-28 19:09:59 UTC      23h Mon 2026-07-27 19:09:59 UTC    45min ago update-notifier-download.time>
-Tue 2026-07-28 19:19:37 UTC      23h Mon 2026-07-27 19:19:37 UTC    36min ago systemd-tmpfiles-clean.timer >
-Thu 2026-07-30 16:17:09 UTC   2 days Mon 2026-07-20 18:39:49 UTC            - update-notifier-motd.timer   >
-Sun 2026-08-02 03:10:50 UTC   5 days Mon 2026-07-27 19:05:40 UTC    50min ago e2scrub_all.timer            >
+Wed 2026-07-29 21:05:50 UTC 4min 20s Wed 2026-07-29 21:00:50 UTC      39s ago borg-backup.timer            >
+Wed 2026-07-29 21:10:00 UTC     8min Wed 2026-07-29 21:00:00 UTC 1min 28s ago sysstat-collect.timer        >
+Wed 2026-07-29 21:20:49 UTC    19min Mon 2026-07-27 19:47:59 UTC            - apt-daily-upgrade.timer      >
+Wed 2026-07-29 21:22:11 UTC    20min Fri 2026-07-24 14:40:32 UTC            - motd-news.timer              >
+Wed 2026-07-29 21:34:05 UTC    32min Mon 2026-07-27 20:08:59 UTC            - fwupd-refresh.timer          >
+Wed 2026-07-29 22:39:30 UTC 1h 38min Mon 2026-07-20 18:39:49 UTC            - apt-daily.timer              >
+Thu 2026-07-30 00:00:00 UTC 2h 58min Wed 2026-07-29 20:35:28 UTC    25min ago dpkg-db-backup.timer         >
+Thu 2026-07-30 00:00:00 UTC 2h 58min Wed 2026-07-29 20:35:28 UTC    25min ago logrotate.timer              >
+Thu 2026-07-30 00:07:00 UTC  3h 5min -                                      - sysstat-summary.timer        >
+Thu 2026-07-30 08:22:29 UTC      11h Fri 2026-07-24 14:20:18 UTC            - man-db.timer                 >
+Thu 2026-07-30 20:40:57 UTC      23h Wed 2026-07-29 20:40:57 UTC    20min ago update-notifier-download.time>
+Thu 2026-07-30 20:50:48 UTC      23h Wed 2026-07-29 20:50:48 UTC    10min ago systemd-tmpfiles-clean.timer >
+Fri 2026-07-31 06:44:37 UTC 1 day 9h Mon 2026-07-20 18:39:49 UTC            - update-notifier-motd.timer   >
+Sun 2026-08-02 03:10:41 UTC   3 days Mon 2026-07-27 19:05:40 UTC            - e2scrub_all.timer            >
+Mon 2026-08-03 00:26:43 UTC   4 days Mon 2026-07-27 20:11:13 UTC            - fstrim.timer                 >
 -                                  - -                                      - apport-autoreport.timer      >
 -                                  - -                                      - snapd.snap-repair.timer      >
 -                                  - -                                      - ua-timer.timer               >
 
 18 timers listed.
+root@client:~/.ssh# systemctl status borg-backup.timer
+● borg-backup.timer - Borg Backup
+     Loaded: loaded (/etc/systemd/system/borg-backup.timer; enabled; preset: enabled)
+     Active: active (waiting) since Wed 2026-07-29 20:50:08 UTC; 11min ago
+    Trigger: Wed 2026-07-29 21:05:50 UTC; 4min 8s left
+   Triggers: ● borg-backup.service
+
+Jul 29 20:50:08 client systemd[1]: Stopped borg-backup.timer - Borg Backup.
+Jul 29 20:50:08 client systemd[1]: Stopping borg-backup.timer - Borg Backup...
+Jul 29 20:50:08 client systemd[1]: Started borg-backup.timer - Borg Backup.
+
+root@client:~# systemctl status borg-backup.service
+○ borg-backup.service - Borg Backup
+     Loaded: loaded (/etc/systemd/system/borg-backup.service; static)
+     Active: inactive (dead) since Wed 2026-07-29 21:00:52 UTC; 29s ago
+TriggeredBy: ● borg-backup.timer
+    Process: 3401 ExecStart=/bin/borg create --stats ${REPO}::etc-{now:%Y-%m-%d_%H:%M:%S} ${BACKUP_TARGET} >
+    Process: 3405 ExecStart=/bin/borg check ${REPO} (code=exited, status=0/SUCCESS)
+    Process: 3414 ExecStart=/bin/borg prune --keep-daily 90 --keep-monthly 12 --keep-yearly 1 ${REPO} (code>
+   Main PID: 3414 (code=exited, status=0/SUCCESS)
+        CPU: 714ms
+
+Jul 29 21:00:51 client borg[3401]: Utilization of max. archive size: 0%
+Jul 29 21:00:51 client borg[3401]: ------------------------------------------------------------------------>
+Jul 29 21:00:51 client borg[3401]:                        Original size      Compressed size    Deduplicate>
+Jul 29 21:00:51 client borg[3401]: This archive:                2.30 MB              1.01 MB               >
+Jul 29 21:00:51 client borg[3401]: All archives:               11.47 MB              5.04 MB              1>
+Jul 29 21:00:51 client borg[3401]:                        Unique chunks         Total chunks
+Jul 29 21:00:51 client borg[3401]: Chunk index:                     826                 4190
+Jul 29 21:00:51 client borg[3401]: ------------------------------------------------------------------------>
+Jul 29 21:00:52 client systemd[1]: borg-backup.service: Deactivated successfully.
+Jul 29 21:00:52 client systemd[1]: Finished borg-backup.service - Borg Backup.
 ```
-До следующего срабатывания таймер осталось '1min 49s'.
+До следующего срабатывания таймера осталось '4min 8s'. Последний бекап успешно выполнился в Wed 2026-07-29 21:00:52
+```
+root@client:~# borg list borg@192.168.1.77:/var/backup/
+Enter passphrase for key ssh://borg@192.168.1.77/var/backup: 
+etc-2026-07-20_19:38:                Mon, 2026-07-20 19:38:28 [3d4c92507d01bea0736befcc0daf598d014fb52ec6885495123d9b28d72cc547]
+etc-2026-07-21_18:51:05              Tue, 2026-07-21 18:51:12 [ea0b454aee9f9f1007279264de92f6fd5eab5e3a94dea2f299d430feb5623f51]
+etc-2026-07-27_20:04:                Mon, 2026-07-27 20:04:44 [a02e8da6eec301b6393eea901992b25775ff05fb0978b34f8fe822f24690e9dc]
+etc-2026-07-29_21:00:50              Wed, 2026-07-29 21:00:51 [a0a9484024b639bd6da2bfe97b32268d7e2f876341e21d39039e5f3713973e3d]
+```
