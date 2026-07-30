@@ -10,7 +10,7 @@
 [Занятие 8. Загрузка системы](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_8_System_boot/Readme.md)\
 [Занятие 9. Systemd — создание unit-файла](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson-9_Systemd/Readme.md)\
 [Занятие 27. Резервное копирование](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_27_Backup/Readme.md)\
-[Занятие 29. DHCP, PXE](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/tree/main/Lesson_29_DHCP_PXE)\
+[Занятие 29. DHCP, PXE](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/tree/main/Lesson_29_DHCP_PXE)
 
 Здравствуйте! 
 Отчет по домашнему заданию доступен по ссылке: 
