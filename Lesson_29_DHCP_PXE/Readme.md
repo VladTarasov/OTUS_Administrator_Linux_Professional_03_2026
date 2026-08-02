@@ -1,20 +1,20 @@
 # Занятие 29. DHCP, PXE
 
 ## Цель домашнего задания
-Отработать навыки установки и настройки DHCP, TFTP, PXE загрузчика и автоматической загрузки
+Отработать навыки установки и настройки DHCP, TFTP, PXE загрузчика и автоматической загрузки ОС
 
 
 ## Описание домашнего задания
-1. Настроить загрузку по сети дистрибутива Ubuntu 24
+1. Настроить загрузку по сети дистрибутива Ubuntu 24.
 2. Установка должна проходить из HTTP-репозитория.
-3. Настроить автоматическую установку c помощью файла user-data
+3. Настроить автоматическую установку c помощью файла user-data.
 *4. Настроить автоматическую загрузку по сети дистрибутива Ubuntu 24 c использованием UEFI
-Задания со звёздочкой выполняются по желанию
+Задания со звёздочкой выполняются по желанию.
 
 ## Выполнение
 1. Настройка DHCP и TFTP-сервера
 
-1) Проверяем текущий статус firewall, убедимся в отсутствии правил фильтрации:
+1) Проверяем текущий статус firewall, убедимся в отсутствии правил фильтрации либо скорректируем их:
 ```
 root@pxeserver:~# ufw status
 Status: inactive
@@ -29,6 +29,7 @@ target     prot opt source               destination
 Chain OUTPUT (policy ACCEPT)
 target     prot opt source               destination
 ```
+Правила фильтрации отсутствуют.
 2) Обновляем кэш пакетов и устанавливаем утилиту dnsmasq
 ```
 root@pxeserver:~# apt update
@@ -93,7 +94,7 @@ root@pxeserver:/etc/dnsmasq.d# cat pxe.conf
 interface=ens34
 bind-interfaces
 
-#Также указаваем интерфейс и range адресов которые будут выдаваться по DHCP
+#Также указываем интерфейс и диапазон адресов, которые будут выдаваться по DHCP
 dhcp-range=eth34,10.0.0.100,10.0.0.120
 
 #Имя файла, с которого надо начинать загрузку для Legacy boot (этот пример рассматривается в методичке)
@@ -153,7 +154,7 @@ drwxr-xr-x 2 root root     4096 Feb 10 00:38 grub
 -rw-r--r-- 1 root root    42392 Apr  8  2024 pxelinux.0
 drwxr-xr-x 2 root root     4096 Feb 10 00:38 pxelinux.cfg
 ```
-6) Поднимаем порт, на котором будут работать DHCP и TFTP сервера, отключаем DNS, для устранения конфликта с systemd-resolve и перезапускаем службу dnsmasq
+6) Настраиваем и поднимаем порт, на котором будут работать DHCP и TFTP сервера, отключаем DNS, для устранения конфликта с systemd-resolve и перезапускаем службу dnsmasq
 ```
 root@pxeserver:~# ip link set ens34 up
 root@pxeserver:~# ip -br link
@@ -161,29 +162,63 @@ lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP>
 ens33            UP             00:0c:29:ae:0f:b6 <BROADCAST,MULTICAST,UP,LOWER_UP>
 ens34            UP             00:50:56:22:a0:0b <BROADCAST,MULTICAST,UP,LOWER_UP>
 
+user@pxeserver:/etc/netplan$ sudo nano /etc/netplan/00-installer-config.yaml
+user@pxeserver:/etc/netplan$ cat /etc/netplan/00-installer-config.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens34:
+      dhcp4: false
+      addresses:
+        - 10.0.0.21/24
+user@pxeserver:/etc/netplan$ sudo netplan try
+user@pxeserver:/etc/netplan$ sudo chmod 600 /etc/netplan/00-installer-config.yaml
+user@pxeserver:/etc/netplan$ sudo netplan try
+Do you want to keep these settings?
+
+
+Press ENTER before the timeout to accept the new configuration
+
+
+Changes will revert in 111 seconds
+Configuration accepted.
+user@pxeserver:/etc/netplan$ ip -br a
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+ens33            UP             192.168.175.136/24 metric 100 fe80::20c:29ff:feae:fb6/64
+ens34            UP             10.0.0.21/24 fe80::250:56ff:fe22:a00b/64
+user@pxeserver:/etc/netplan$ sudo netplan apply
+
 root@pxeserver:~# systemctl restart dnsmasq
-root@pxeserver:~# systemctl status dnsmasq
+user@pxeserver:~$ sudo systemctl restart dnsmasq
+user@pxeserver:~$ sudo systemctl status dnsmasq
 ● dnsmasq.service - dnsmasq - A lightweight DHCP and caching DNS server
      Loaded: loaded (/usr/lib/systemd/system/dnsmasq.service; enabled; preset: enabled)
-     Active: active (running) since Thu 2026-07-30 19:33:06 UTC; 32s ago
-    Process: 2593 ExecStartPre=/usr/share/dnsmasq/systemd-helper checkconfig (code=exited, status=0/SUCCESS)
-    Process: 2598 ExecStart=/usr/share/dnsmasq/systemd-helper exec (code=exited, status=0/SUCCESS)
-    Process: 2606 ExecStartPost=/usr/share/dnsmasq/systemd-helper start-resolvconf (code=exited, status=0/SUCCESS)
-   Main PID: 2604 (dnsmasq)
+     Active: active (running) since Sun 2026-08-02 10:14:51 UTC; 6s ago
+    Process: 1335 ExecStartPre=/usr/share/dnsmasq/systemd-helper checkconfig (code=exited, status=0/SUCCESS)
+    Process: 1341 ExecStart=/usr/share/dnsmasq/systemd-helper exec (code=exited, status=0/SUCCESS)
+    Process: 1347 ExecStartPost=/usr/share/dnsmasq/systemd-helper start-resolvconf (code=exited, status=0/SUCCESS)
+   Main PID: 1346 (dnsmasq)
       Tasks: 1 (limit: 9374)
-     Memory: 744.0K (peak: 2.1M)
-        CPU: 26ms
+     Memory: 740.0K (peak: 1.8M)
+        CPU: 38ms
      CGroup: /system.slice/dnsmasq.service
-             └─2604 /usr/sbin/dnsmasq -x /run/dnsmasq/dnsmasq.pid -u dnsmasq -r /run/dnsmasq/resolv.conf -7 /etc/dnsmasq.d>
+             └─1346 /usr/sbin/dnsmasq -x /run/dnsmasq/dnsmasq.pid -u dnsmasq -r /run/dnsmasq/resolv.conf -7 /etc/dnsmasq.d>
 
-Jul 30 19:33:06 pxeserver systemd[1]: Starting dnsmasq.service - dnsmasq - A lightweight DHCP and caching DNS server...
-Jul 30 19:33:06 pxeserver dnsmasq[2604]: started, version 2.90 DNS disabled
-Jul 30 19:33:06 pxeserver dnsmasq[2604]: compile time options: IPv6 GNU-getopt DBus no-UBus i18n IDN2 DHCP DHCPv6 no-Lua T>
-Jul 30 19:33:06 pxeserver dnsmasq-dhcp[2604]: DHCP, IP range 10.0.0.100 -- 10.0.0.120, lease time 1h
-Jul 30 19:33:06 pxeserver dnsmasq-dhcp[2604]: DHCP, sockets bound exclusively to interface ens34
-Jul 30 19:33:06 pxeserver dnsmasq-tftp[2604]: TFTP root is /srv/tftp/amd64
-Jul 30 19:33:06 pxeserver systemd[1]: Started dnsmasq.service - dnsmasq - A lightweight DHCP and caching DNS server.
-
+Aug 02 10:14:51 pxeserver systemd[1]: Starting dnsmasq.service - dnsmasq - A lightweight DHCP and caching DNS server...
+Aug 02 10:14:51 pxeserver dnsmasq[1346]: started, version 2.90 DNS disabled
+Aug 02 10:14:51 pxeserver dnsmasq[1346]: compile time options: IPv6 GNU-getopt DBus no-UBus i18n IDN2 DHCP DHCPv6 no-Lua T>
+Aug 02 10:14:51 pxeserver dnsmasq-dhcp[1346]: DHCP, IP range 10.0.0.100 -- 10.0.0.120, lease time 1h
+Aug 02 10:14:51 pxeserver dnsmasq-dhcp[1346]: DHCP, sockets bound exclusively to interface ens34
+Aug 02 10:14:51 pxeserver dnsmasq-tftp[1346]: TFTP root is /srv/tftp/amd64
+Aug 02 10:14:51 pxeserver systemd[1]: Started dnsmasq.service - dnsmasq - A lightweight DHCP and caching DNS server.
+user@pxeserver:~$ ss -tunlp | grep dnsmasq
+user@pxeserver:~$ sudo ss -tunlp | grep dnsmasq
+udp   UNCONN 0      0                         0.0.0.0%ens34:67        0.0.0.0:*    users:(("dnsmasq",pid=1346,fd=4))       
+udp   UNCONN 0      0                             127.0.0.1:69        0.0.0.0:*    users:(("dnsmasq",pid=1346,fd=7))       
+udp   UNCONN 0      0                             10.0.0.21:69        0.0.0.0:*    users:(("dnsmasq",pid=1346,fd=6))       
+udp   UNCONN 0      0                                 [::1]:69           [::]:*    users:(("dnsmasq",pid=1346,fd=9))       
+udp   UNCONN 0      0      [fe80::250:56ff:fe22:a00b]%ens34:69           [::]:*    users:(("dnsmasq",pid=1346,fd=8))   
 ```
 
 
