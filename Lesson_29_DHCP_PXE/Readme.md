@@ -421,4 +421,134 @@ tcp   LISTEN 0      511                                   *:80              *:* 
 
 ### 3. Настройка автоматической установки Ubuntu 24.04 
 
+Автоматизируем установку ОС (чтобы не пользоваться мастером установки вручную) 
+1) cоздаём каталог для файлов с автоматической установкой
+```
+root@pxeserver:~# mkdir /srv/ks
+```
+2) создаём файл /srv/ks/user-data и добавляем в него следующее содержимое
+```
+root@pxeserver:~# cat > /srv/ks/user-data
+#cloud-config
+autoinstall:
+apt:
+disable_components: []
+geoip: true
+preserve_sources_list: false
+primary: - arches: - amd64 - i386
+uri: http://us.archive.ubuntu.com/ubuntu - arches: - default
+uri: http://ports.ubuntu.com/ubuntu-ports
+drivers:
+install: false
+identity:
+hostname: linux
+password: $6$sJgo6Hg5zXBwkkI8$btrEoWAb5FxKhajagWR49XM4EAOfODr5bMrLOkGe3KkMYdsh7T3MU5mYwY2TIMJpVKckAwnZFs2ltUJ1abOZ.
+realname: otus
+username: otus
+kernel:
+package: linux-generic
+keyboard:
+layout: us
+toggle: null
+variant: '
+locale: en_US.UTF-8
+network:
+ethernets:
+enp0s3:
+dhcp4: true
+enp0s8:
+dhcp4: true
+version: 2
+ssh:
+allow-pw: true
+authorized-keys: []
+install-server: true
+updates: security
+```
+3) создаём файл с метаданными /srv/ks/meta-data
+```
+root@pxeserver:~# touch /srv/ks/meta-data
+```
+Файл с метаданными хранит дополнительную информацию о хосте, не будем добавлять дополнительную информацию.
 
+4) в конфигурации веб-сервера добавим каталог /srv/ks идентично каталогу /srv/images
+```
+root@pxeserver:/srv/ks# nano /etc/apache2/sites-available/ks-server.conf
+root@pxeserver:/srv/ks# cat /etc/apache2/sites-available/ks-server.conf
+# IP-адрес хоста и порт, на котором будет работать Web-сервер
+<VirtualHost 10.0.0.21:80>
+DocumentRoot /
+</VirtualHost>
+
+# Указываем директорию /srv/images из которой будет загружаться iso-образ
+<Directory /srv/images>
+Options Indexes MultiViews
+AllowOverride All
+Require all granted
+</Directory>
+
+# Указываем директорию /srv/ks из которой будет загружаться файл автонастройки ОС при установке
+<Directory /srv/ks>
+Options Indexes MultiViews
+AllowOverride All
+Require all granted
+</Directory>
+```
+5) в файле /srv/tftp/amd64/pxelinux.cfg/default добавляем параметры автоматической установки ОС **autoinstall ds=nocloud-net;s=http://10.0.0.21/srv/ks/**
+```
+root@pxeserver:/srv/ks# cat /srv/tftp/amd64/pxelinux.cfg/default
+DEFAULT install
+LABEL install
+  KERNEL linux
+  INITRD initrd
+  APPEND root=/dev/ram0 ramdisk_size=3200000 ip=dhcp iso-url=http://10.0.0.21/srv/images/ubuntu-24.04.4-live-server-amd64.iso autoinstall ds=nocloud-net;s=http://10.0.0.21/srv/ks
+```
+6) перезапускаем службы dnsmasq и apache2 и проверяем их статус
+```
+root@pxeserver:/srv/ks# systemctl restart dnsmasq
+root@pxeserver:/srv/ks# systemctl status dnsmasq
+dnsmasq.service - dnsmasq - A lightweight DHCP and caching DNS server
+     Loaded: loaded (/usr/lib/systemd/system/dnsmasq.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-08-05 20:52:53 UTC; 6s ago
+    Process: 1923 ExecStartPre=/usr/share/dnsmasq/systemd-helper checkconfig (code=exited, status=0/SUCCESS)
+    Process: 1929 ExecStart=/usr/share/dnsmasq/systemd-helper exec (code=exited, status=0/SUCCESS)
+    Process: 1937 ExecStartPost=/usr/share/dnsmasq/systemd-helper start-resolvconf (code=exited, status=0/SUCCESS)
+   Main PID: 1935 (dnsmasq)
+      Tasks: 1 (limit: 9374)
+     Memory: 744.0K (peak: 2.1M)
+        CPU: 29ms
+     CGroup: /system.slice/dnsmasq.service
+             └─1935 /usr/sbin/dnsmasq -x /run/dnsmasq/dnsmasq.pid -u dnsmasq -r /run/dnsmasq/resolv.conf -7 /etc/dnsmasq.d>
+
+Aug 05 20:52:53 pxeserver systemd[1]: Starting dnsmasq.service - dnsmasq - A lightweight DHCP and caching DNS server...
+Aug 05 20:52:53 pxeserver dnsmasq[1935]: started, version 2.90 DNS disabled
+Aug 05 20:52:53 pxeserver dnsmasq[1935]: compile time options: IPv6 GNU-getopt DBus no-UBus i18n IDN2 DHCP DHCPv6 no-Lua T>
+Aug 05 20:52:53 pxeserver dnsmasq-dhcp[1935]: DHCP, IP range 10.0.0.100 -- 10.0.0.120, lease time 1h
+Aug 05 20:52:53 pxeserver dnsmasq-dhcp[1935]: DHCP, sockets bound exclusively to interface ens34
+Aug 05 20:52:53 pxeserver dnsmasq-tftp[1935]: TFTP root is /srv/tftp/amd64
+Aug 05 20:52:53 pxeserver systemd[1]: Started dnsmasq.service - dnsmasq - A lightweight DHCP and caching DNS server.
+
+root@pxeserver:/srv/ks# systemctl restart apache2
+root@pxeserver:/srv/ks# systemctl status apache2
+● apache2.service - The Apache HTTP Server
+     Loaded: loaded (/usr/lib/systemd/system/apache2.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-08-05 20:53:56 UTC; 7s ago
+       Docs: https://httpd.apache.org/docs/2.4/
+    Process: 1955 ExecStart=/usr/sbin/apachectl start (code=exited, status=0/SUCCESS)
+   Main PID: 1958 (apache2)
+      Tasks: 55 (limit: 9374)
+     Memory: 5.2M (peak: 5.5M)
+        CPU: 22ms
+     CGroup: /system.slice/apache2.service
+             ├─1958 /usr/sbin/apache2 -k start
+             ├─1960 /usr/sbin/apache2 -k start
+             └─1961 /usr/sbin/apache2 -k start
+
+Aug 05 20:53:56 pxeserver systemd[1]: Starting apache2.service - The Apache HTTP Server...
+Aug 05 20:53:56 pxeserver systemd[1]: Started apache2.service - The Apache HTTP Server.
+```
+
+На этом настройка автоматической установки завершена. Теперь можно перезапустить ВМ pxeclient и мы должны увидеть автоматическую установку. 
+
+После успешной установки выключаем ВМ и в её настройках ставим запуск ВМ из диска Далее, после запуска нашей ВМ мы сможем залогиниться под пользователем otus. 
+На этом настройка автоматической установки завершена. 
