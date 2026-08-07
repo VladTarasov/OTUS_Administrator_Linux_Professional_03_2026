@@ -221,6 +221,7 @@ udp   UNCONN 0      0                                 [::1]:69           [::]:* 
 udp   UNCONN 0      0      [fe80::250:56ff:fe22:a00b]%ens34:69           [::]:*    users:(("dnsmasq",pid=1346,fd=8))   
 ```
 Видим, что открыты сокеты для работы TFTP и DHCP серверов.
+
 ### 2. Настройка Web-сервера
 Для того, чтобы отдавать файл образа системы по HTTP нам потребуется настроенный веб-сервер. 
 1) Устанавливаем Web-сервер apache2
@@ -431,39 +432,36 @@ root@pxeserver:~# mkdir /srv/ks
 root@pxeserver:~# cat > /srv/ks/user-data
 #cloud-config
 autoinstall:
-apt:
-disable_components: []
-geoip: true
-preserve_sources_list: false
-primary: - arches: - amd64 - i386
-uri: http://us.archive.ubuntu.com/ubuntu - arches: - default
-uri: http://ports.ubuntu.com/ubuntu-ports
-drivers:
-install: false
-identity:
-hostname: linux
-password: $6$sJgo6Hg5zXBwkkI8$btrEoWAb5FxKhajagWR49XM4EAOfODr5bMrLOkGe3KkMYdsh7T3MU5mYwY2TIMJpVKckAwnZFs2ltUJ1abOZ.
-realname: otus
-username: otus
-kernel:
-package: linux-generic
-keyboard:
-layout: us
-toggle: null
-variant: '
-locale: en_US.UTF-8
-network:
-ethernets:
-enp0s3:
-dhcp4: true
-enp0s8:
-dhcp4: true
-version: 2
-ssh:
-allow-pw: true
-authorized-keys: []
-install-server: true
-updates: security
+  version: 1
+  apt:
+    fallback: offline-install
+    preserve_sources_list: false
+    geoip: false
+  drivers:
+    install: false
+  identity:
+    hostname: pxeclient
+    password: $6$sJgo6Hg5zXBwkkI8$btrEoWAb5FxKhajagWR49XM4EAOfODr5bMrLOkGe3KkMYdsh7T3MU5mYwY2TIMJpVKckAwnZFs2ltUJ1abOZ.
+    realname: otus
+    username: otus
+  kernel:
+    package: linux-generic
+  keyboard:
+    layout: us
+    variant: ""
+    toggle: null
+  network:
+    version: 2
+    ethernets:
+      ens33:
+        dhcp4: true
+      ens34:
+        dhcp4: true
+  ssh:
+    allow-pw: true
+    authorized-keys: []
+    install-server: true
+  updates: security
 ```
 3) создаём файл с метаданными /srv/ks/meta-data
 ```
@@ -494,14 +492,14 @@ AllowOverride All
 Require all granted
 </Directory>
 ```
-5) в файле /srv/tftp/amd64/pxelinux.cfg/default добавляем параметры автоматической установки ОС **autoinstall ds=nocloud-net;s=http://10.0.0.21/srv/ks/**
+5) в файле /srv/tftp/amd64/pxelinux.cfg/default добавляем параметры автоматической установки ОС
 ```
 root@pxeserver:/srv/ks# cat /srv/tftp/amd64/pxelinux.cfg/default
 DEFAULT install
 LABEL install
   KERNEL linux
   INITRD initrd
-  APPEND root=/dev/ram0 ramdisk_size=3200000 ip=dhcp iso-url=http://10.0.0.21/srv/images/ubuntu-24.04.4-live-server-amd64.iso autoinstall ds=nocloud-net;s=http://10.0.0.21/srv/ks
+  APPEND root=/dev/ram0 ramdisk_size=4000000 ip=dhcp cloud-config-url=http://10.0.0.21/srv/ks/user-data iso-url=http://10.0.0.21/srv/images/ubuntu-24.04.4-live-server-amd64.iso autoinstall ds=nocloud-net;s=http://10.0.0.21/
 ```
 6) перезапускаем службы dnsmasq и apache2 и проверяем их статус
 ```
