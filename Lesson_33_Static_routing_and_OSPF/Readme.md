@@ -16,8 +16,8 @@ Linux-based системах.
 
 Создадим 3 виртуальные машины и 3 хоста, и объединим их в следующую топологию.
 
-<img width="514" height="600" alt="frr_topology" src="https://github.com/user-attachments/assets/3e4b239b-5669-4071-9dcb-b21de4234112" />
- 
+<img width="484" height="658" alt="frr_topology_v2" src="https://github.com/user-attachments/assets/adbd99ab-8201-43d8-b7c7-709678e7eea7" />
+
 ```
  Static hostname: router1
        Icon name: computer-vm
