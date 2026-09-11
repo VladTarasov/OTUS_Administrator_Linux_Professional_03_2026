@@ -100,23 +100,38 @@ otusadm
 7. Далее настроим правило, по которому все пользователи кроме тех, что указаны в группе admin, не смогут подключаться в выходные дни.
 Выберем метод PAM-аутентификации. Так как у нас используется только ограничение по времени, то было бы логично использовать метод pam_time, однако, данный метод не работает с локальными группами пользователей, и получается, что использование данного метода добавит нам большое количество однообразных строк с разными пользователями. В текущей ситуации лучше написать небольшой скрипт контроля и использовать модуль pam_exec.
 
-8. Создадим файл-скрипт /usr/local/bin/login.sh
+8. Создадим файл-скрипт /usr/local/bin/login.sh, ограничивающий доступ к системе с учетом праздничных, выходных дней и наличия у пользователя группы admin
 ```
-root@user:~# cat > /usr/local/bin/login.sh
 #!/bin/bash
-#Первое условие: если день недели суббота или воскресенье
-if [ $(date +%a) = "Sat" ] || [ $(date +%a) = "Sun" ]; then
- #Второе условие: входит ли пользователь в группу admin
- if getent group admin | grep -qw "$PAM_USER"; then
-        #Если пользователь входит в группу admin, то он может подключиться
+#Переменные
+today="$(date +'%d %B')"
+holidays=("01 January" "23 February" "08 March" "01 May" "09 May" "12 June" "04 November" "31 December")
+match=false
+
+#Цикл проверки праздничных дней
+for item in "${holidays[@]}"; do
+    if [ "$today" = "$item" ]; then
+        match=true
+        break
+    fi
+done
+
+#Блок проверки выходных дней и наличия группы admin, а также завершения работы скрипта в случае праздничных дней
+if [ "$match" = true ];
+then
+    exit 1
+else
+    if [ $(date +%a) = "Sat" ] || [ $(date +%a) = "Sun" ];
+    then
+        if getent group admin | grep -qw "$PAM_USER";
+        then
+            exit 0
+        else
+            exit 1
+        fi
+    else
         exit 0
-      else
-        #Иначе ошибка (не сможет подключиться)
-        exit 1
-  fi
-  #Если день не выходной, то подключиться может любой пользователь
-  else
-    exit 0
+    fi
 fi
 ```
 
@@ -134,18 +149,56 @@ auth required pam_exec.so debug /usr/local/bin/login.sh
 ...
 ```
 
+Проверим работу скрипта аутентификации при различных условиях.
 
-А какой алгоритм будет для запрета админам подключаться в праздничные дни?
+Установим текущую дату в значение праздничного дня:
+```
+root@client:~# timedatectl set-time "2026-01-01"
+root@client:~# date
+Thu Jan  1 12:00:02 AM UTC 2026
+root@client:~# journalctl -u ssh -f --since now
+Jan 01 00:01:59 client sshd[27222]: pam_exec(sshd:auth): Calling /usr/local/bin/login.sh ...
+Jan 01 00:01:59 client sshd[27220]: pam_exec(sshd:auth): /usr/local/bin/login.sh failed: exit code 1
+Jan 01 00:02:00 client sshd[27220]: Failed password for otus from 192.168.31.92 port 54874 ssh2
+Jan 01 00:02:03 client sshd[27220]: Connection closed by authenticating user otus 192.168.31.92 port 54874 [preauth]
+Jan 01 00:02:12 client sshd[27226]: pam_exec(sshd:auth): Calling /usr/local/bin/login.sh ...
+Jan 01 00:02:12 client sshd[27224]: pam_exec(sshd:auth): /usr/local/bin/login.sh failed: exit code 1
+Jan 01 00:02:14 client sshd[27224]: Failed password for otusadm from 192.168.31.92 port 54875 ssh2
+Jan 01 00:02:17 client sshd[27224]: Connection closed by authenticating user otusadm 192.168.31.92 port 54875 [preauth]
+```
+Скрипт успешно отработал, администратору и обычному пользователю не удалось подключиться в выходной день.
 
-if сегодня праздничный день; then
-  exit 0 да - никто не может подключиться
-  else   нет - 
-    if сегодня суббота или воскресенье; then
-        да - может подключиться админ
-        if getent group admin | grep -qw "$PAM_USER"; then
-        #Если пользователь входит в группу admin, то он может подключиться
-        exit 0
-      else
-        #Иначе ошибка (не сможет подключиться)
-        exit 1
-        нет - может подключиться любой
+Установим дату в значение соответствующее выходному дню и проверим подключение:
+```
+root@client:~# timedatectl set-time "2026-09-05"
+root@client:~# date
+Sat Sep  5 12:00:02 AM UTC 2026
+root@client:~# journalctl -u ssh --since now
+Sep 05 00:01:09 client sshd[27448]: pam_exec(sshd:auth): Calling /usr/local/bin/login.sh ...
+Sep 05 00:01:09 client sshd[27446]: pam_exec(sshd:auth): /usr/local/bin/login.sh failed: exit code 1
+Sep 05 00:01:11 client sshd[27446]: Failed password for otus from 192.168.31.92 port 54951 ssh2
+Sep 05 00:01:13 client sshd[27446]: Connection closed by authenticating user otus 192.168.31.92 port 54951 [preauth]
+Sep 05 00:01:22 client sshd[27455]: pam_exec(sshd:auth): Calling /usr/local/bin/login.sh ...
+Sep 05 00:01:22 client sshd[27453]: pam_unix(sshd:account): account otusadm has password changed in future
+Sep 05 00:01:22 client sshd[27453]: Accepted password for otusadm from 192.168.31.92 port 54952 ssh2
+Sep 05 00:01:22 client sshd[27453]: pam_unix(sshd:session): session opened for user otusadm(uid=1002) by otusadm(uid=0)
+```
+Как видим администратору подключиться удалось, а обычному пользователю нет.
+
+Проверим возможность подключения в рабочий будний день:
+```
+root@client:~# timedatectl set-time "2026-09-07"
+root@client:~# date
+Mon Sep  7 12:00:01 AM UTC 2026
+root@client:~# journalctl -u ssh --since now
+Sep 07 00:00:41 client sshd[27708]: pam_exec(sshd:auth): Calling /usr/local/bin/login.sh ...
+Sep 07 00:00:41 client sshd[27706]: pam_unix(sshd:account): account otus has password changed in future
+Sep 07 00:00:41 client sshd[27706]: Accepted password for otus from 192.168.31.92 port 54955 ssh2
+Sep 07 00:00:41 client sshd[27706]: pam_unix(sshd:session): session opened for user otus(uid=1003) by otus(uid=0)
+Sep 07 00:00:57 client sshd[27812]: pam_exec(sshd:auth): Calling /usr/local/bin/login.sh ...
+Sep 07 00:00:57 client sshd[27803]: pam_unix(sshd:account): account otusadm has password changed in future
+Sep 07 00:00:57 client sshd[27803]: Accepted password for otusadm from 192.168.31.92 port 54956 ssh2
+Sep 07 00:00:57 client sshd[27803]: pam_unix(sshd:session): session opened for user otusadm(uid=1002) by otusadm(uid=0)
+```
+Администратор и пользователь успешно подключились к системе.
+
