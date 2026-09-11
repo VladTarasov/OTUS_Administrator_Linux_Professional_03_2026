@@ -9,6 +9,7 @@
 [Занятие 7. Управление пакетами. Дистрибьюция софта](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_7_Package_Management/Readme.md)\
 [Занятие 8. Загрузка системы](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_8_System_boot/Readme.md)\
 [Занятие 9. Systemd — создание unit-файла](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson-9_Systemd/Readme.md)\
+[Занятие 24. Пользователи и группы. Авторизация и аутентификация](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_24_Users_and_Groups_AAA_PAM/Readme.md)\
 [Занятие 27. Резервное копирование](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_27_Backup/Readme.md)\
 [Занятие 29. DHCP, PXE](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/tree/main/Lesson_29_DHCP_PXE)\
 [Занятие 33. Статическая и динамическая маршрутизация, OSPF](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_33_Static_routing_and_OSPF/Readme.md)
