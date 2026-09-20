@@ -45,18 +45,8 @@
 ```
 #!/bin/bash
 
-# Обрабатываемый временной диапазон
-
-CURRENT_TIME=$(date "+%Y-%m-%d_%H-%M-%S")
-LAST_TIME=$(date -d '1 minute ago' '+%Y-%m-%d_%H-%M-%S')
-
-echo "Обрабатываемый временной диапазон $LAST_TIME - $CURRENT_TIME"
-
-# Имя файла блокировки поместим в переменную
+# Проверяем и создаем блокировку одновременного запуска нескольких копий скрипта, до его завершения
 LOCKFILE="/var/lock/report_script.lock"
-
-# Проверяем и создаем блокировку
-
 exec 9> "$LOCKFILE"
 if ! flock -n 9; then
     echo "Ошибка: Скрипт уже запущен." >&2
@@ -65,26 +55,46 @@ fi
 
 echo "Скрипт запущен и выполняется..."
 
-### --- Основной код скрипта --- ###
+### --- Основной код скрипта начало --- ###
 
-echo 'Hello, world' > /home/user/reports/"report_file_$(date "+%Y-%m-%d_%H-%M-%S").txt"
+# Создаем каталог для хранения отчетов, если он отсутствует.
+dirname="/home/user/reports"
+[ -d "$dirname" ] || mkdir "$dirname"
 
-# Отбор свежего файла с отчетом
+## Формирование необходимых данных
+# Топ 10 IP-адресов с наибольшим числом запросов (с момента последнего запуска)
+top_10_ip=$(awk '{print $1}' ~/access-4560-644067.log | sort | uniq -c | sort -nr | head -10)
 
-REPORT=$(ls -t /home/user/reports | head -n 1)
+# Топ 10 URL с наибольшим числом запросов
+top_10_url=$(awk '{print $7}' ~/access-4560-644067.log)
 
-echo "" && cat "/home/user/reports/$REPORT" && echo ""
+# Создаем пустой файл отчета
+report_file="report_file_$(date "+%Y-%m-%d_%H").txt"
+touch $dirname/$report_file
 
-#Передача файла почтовому клиенту (бутафорская)
 
-#echo "Отчет за период $LAST_TIME - $CURRENT_TIME" | mutt -s "Web-server access report" -a $REPORT -- recipient@example.com
+# Записываем в отчет отобранные данные
+report=$dirname/$report_file
+echo 'Топ 10 IP-адресов с наибольшим числом запросов' >> $report ; echo
+echo -e "$top_10_ip\n" >> $report ; echo
 
-### --- Основной код скрипта --- ###
+
+
+#echo "$(date "+%Y-%m-%d_%H-%M-%S") Hello, world" > /home/user/reports/"report_file_$(date "+%Y-%m-%d_%H-%M-%S").txt" 
+
+# Отправка отчета на почту 
+#echo -e $REPORT | mail -s 
+#"Отчет о доступе к web-серверу"
+#$ADMIN_EMAIL
+
+### --- Основной код скрипта конец --- ###
+
 
 # Пауза перед завершением и оповещение о завершении работы скрипта
 
 sleep 10
-echo "Скрипт завершил работу."
+
+echo Скрипт завершил работу.
 ```
 
 
