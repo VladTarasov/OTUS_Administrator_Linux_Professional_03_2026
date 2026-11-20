@@ -12,6 +12,7 @@
 [Занятие 10. Bash](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_10_Bash/Readme.md)\
 [Занятие 12. Управление процессами](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/tree/main/Lesson_12_Process_management)\
 [Занятие 15. SELinux - когда все запрещено](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/tree/main/Lesson_15_SELinux)\
+[Занятия 16-17. Автоматизация администрированя. Ansible](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_16-17_Ansible/Readme.md)\
 [Занятие 24. Пользователи и группы. Авторизация и аутентификация](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_24_Users_and_Groups_AAA_PAM/Readme.md)\
 [Занятие 27. Резервное копирование](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/blob/main/Lesson_27_Backup/Readme.md)\
 [Занятие 29. DHCP, PXE](https://github.com/VladTarasov/OTUS_Administrator_Linux_Professional_03_2026/tree/main/Lesson_29_DHCP_PXE)\
