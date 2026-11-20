@@ -48,8 +48,6 @@ nginx ansible_host=172.17.135.23
 interpreter_python = auto_silent
 inventory = staging/hosts
 remote_user = ansible
-host_key_checking = false
-retry_files_enabled = false
 ```
 Проверим работу ansible c помощью ad-hoc команд:
 - выполним ping до нашего хоста;
