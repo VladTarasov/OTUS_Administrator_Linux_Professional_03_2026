@@ -185,5 +185,103 @@ Playbook примет следующий и уже окончательный в
 
 Как видно на скриншоте playbook отработал штатно и nginx доступен на порту 8080.
 
+### **Дополнительное задание**
 
+Преобразуем созданный плейбук для работы в виде роли.
+Создадим структуру для роли nginx.
+<img width="382" height="38" alt="role create" src="https://github.com/user-attachments/assets/32701dd2-0709-4fe0-bfd9-2ff57d96630c" />
 
+<img width="186" height="178" alt="role tree" src="https://github.com/user-attachments/assets/0beef95f-3db6-4f6e-8a81-434c6ba31365" />
+
+Переменную, определяющую кастомный порт, поместим в файл с переменными:
+```
+ % cat roles/nginx/defaults/main.yml
+                                                                                                                                                                
+---
+# defaults file for roles/nginx
+nginx_listen_port: 8080
+```
+
+Зададим шаблон конфигурации nginx:
+```
+ % cat roles/nginx/templates/nginx.conf.j2
+                                                                                                                                                          
+server {
+        listen {{ nginx_listen_port }} default_server;
+        server_name default_server;
+        root /usr/share/nginx/html;
+
+        location / {
+        }
+}
+```
+
+Сформируем файл с задачами:
+```
+% cat roles/nginx/tasks/main.yml
+
+---
+# tasks file for roles/nginx
+- name: update
+  apt:
+    update_cache=yes
+  tags:
+    - update apt
+- name: NGINX | Install NGINX
+apt:
+name: nginx
+  state: latest
+notify:
+  - restart nginx
+tags:
+  - nginx-pakage
+- name: NGINX | Create NGINX config file from template
+template:
+src: nginx.conf.j2
+dest: /etc/nginx/sites-available/default
+owner: root
+group: root
+mode: "0644"
+notify:
+- reload nginx
+tags:
+- nginx-configuration
+```
+
+Сформируем файл с handlers:
+```
+ % cat roles/nginx/handlers/main.yml
+                                                                                                                                                              
+---
+# handlers file for roles/nginx
+handlers:
+- name: restart nginx
+  systemd:
+    name: nginx
+    state: restarted
+    enabled: yes
+
+- name: reload nginx
+  systemd:
+    name: nginx
+    state: reloaded
+```
+
+Итоговый playbook примет минималистичный вид:
+```
+ % cat playbook.yaml
+                                                                                                                                                                               
+---
+- name: NGINX | Install and configure NGINX
+  hosts: nginx
+  become: true
+
+  roles:
+    - role: nginx
+```
+
+Запустим playbook
+
+<img width="1652" height="310" alt="playbook with role" src="https://github.com/user-attachments/assets/bf04d809-2bb7-4995-82e2-77f7f71974e1" />
+
+Как видно на скриншоте playbook отработал без ошибок.
